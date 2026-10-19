@@ -58,6 +58,17 @@ jobs:
           node-version: '22'
           cache: npm
 
+      - name: Identify the self-hosted Ubuntu image
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          case "$ID:$VERSION_ID" in
+            ubuntu:22.04) echo 'ImageOS=ubuntu22' >> "$GITHUB_ENV" ;;
+            ubuntu:24.04) echo 'ImageOS=ubuntu24' >> "$GITHUB_ENV" ;;
+            ubuntu:26.04) echo 'ImageOS=ubuntu26' >> "$GITHUB_ENV" ;;
+            *) echo "Unsupported BEAM binary target: $ID:$VERSION_ID" >&2; exit 1 ;;
+          esac
+
       - name: Set up the pinned control toolchain
         uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124
         with:
@@ -148,12 +159,20 @@ jobs:
             echo "RELEASE_DISTRIBUTION=none"
           } >> "$GITHUB_ENV"
 
+      - name: Locate the installed rustup executable
+        run: |
+          if [ -x "$HOME/.cargo/bin/rustup" ]; then
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Set up the pinned plugin Rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: '1.89.0'
+
       - name: Prepare pinned plugin build tools
         run: |
           set -euo pipefail
-          command -v rustup
-          rustup --version
-          rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
           python3 -B plugins/riff-chatgpt/packaging/build_toolchain.py --platform "$RIFF_PLUGIN_TARGET" --output "$RIFF_PLUGIN_BUILD/tools"
 
       - name: Build the Linux ChatGPT plugin package
