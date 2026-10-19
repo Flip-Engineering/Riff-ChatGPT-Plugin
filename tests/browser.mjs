@@ -170,11 +170,11 @@ try {
   );
   await page.getByLabel("Length", { exact: true }).fill("12");
   await page.getByText("More creative control", { exact: true }).click();
-  await page.getByLabel("Composition", { exact: true }).selectOption("melody");
+  await page.locator("#planning").selectOption("melody");
   await page
     .getByLabel("ABC score", { exact: false })
     .waitFor({ state: "visible" });
-  await page.getByLabel("Composition", { exact: true }).selectOption("off");
+  await page.locator("#planning").selectOption("off");
   await page.locator("#seed").fill("15961");
   await page.reload();
   assert.equal(
