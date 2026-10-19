@@ -52,9 +52,6 @@ jobs:
         with:
           python-version: '3.14'
 
-      - name: Check Riff runtime resource accounting
-        run: elixir runtime/test/resources_test.exs
-
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -67,6 +64,9 @@ jobs:
           otp-version: '28.0.2'
           elixir-version: '1.18.4'
           version-type: strict
+
+      - name: Check Riff runtime resource accounting
+        run: elixir runtime/test/resources_test.exs
 
       - name: Install the Linux packages used by existing checks
         run: |
@@ -140,6 +140,8 @@ jobs:
             echo "SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)"
             echo "RIFF_PLUGIN_RENDER=false"
             echo "RUSTUP_TOOLCHAIN=1.89.0"
+            echo "RUSTUP_HOME=$RUNNER_TEMP/riff-homelab-validation/rustup-home"
+            echo "CARGO_HOME=$RUNNER_TEMP/riff-homelab-validation/cargo-home"
             echo "PYTHONDONTWRITEBYTECODE=1"
             echo "PYTHONNOUSERSITE=1"
             echo "ERL_FLAGS=+S 2:2 +SDcpu 1 +SDio 1"
@@ -149,15 +151,18 @@ jobs:
       - name: Prepare pinned plugin build tools
         run: |
           set -euo pipefail
+          command -v rustup
+          rustup --version
           rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
           python3 -B plugins/riff-chatgpt/packaging/build_toolchain.py --platform "$RIFF_PLUGIN_TARGET" --output "$RIFF_PLUGIN_BUILD/tools"
 
       - name: Build the Linux ChatGPT plugin package
         run: |
           set -euo pipefail
+          jobs="$(nproc)"
           python3 -B plugins/riff-chatgpt/packaging/build_python.py --platform "$RIFF_PLUGIN_TARGET" --output "$RIFF_PLUGIN_BUILD/python"
-          python3 -B plugins/riff-chatgpt/packaging/build_native.py --backend "$RIFF_PLUGIN_BACKEND" --output "$RIFF_PLUGIN_BUILD/native" --jobs 2 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/native.log"
-          python3 -B plugins/riff-chatgpt/packaging/build_media.py --output "$RIFF_PLUGIN_BUILD/media" --jobs 2 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/media.log"
+          python3 -B plugins/riff-chatgpt/packaging/build_native.py --backend "$RIFF_PLUGIN_BACKEND" --output "$RIFF_PLUGIN_BUILD/native" --jobs "$jobs" 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/native.log"
+          python3 -B plugins/riff-chatgpt/packaging/build_media.py --output "$RIFF_PLUGIN_BUILD/media" --jobs "$jobs" 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/media.log"
           python3 -B plugins/riff-chatgpt/packaging/build_control.py --output "$RIFF_PLUGIN_BUILD/control" 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/control.log"
           python3 -B scripts/package_chatgpt_plugin.py \
             --platform "$RIFF_PLUGIN_TARGET" \
@@ -181,12 +186,16 @@ jobs:
         with:
           name: riff-homelab-linux-${{ inputs.source_sha }}
           path: |
-            ${{ runner.temp }}/riff-homelab-validation/
+            ${{ runner.temp }}/riff-homelab-validation/runner.json
+            ${{ runner.temp }}/riff-homelab-validation/*.log
+            ${{ runner.temp }}/riff-homelab-validation/native-lora/*.json
+            ${{ runner.temp }}/riff-homelab-validation/native-score-check/*.json
+            dist/riff-v*.tar.gz
             ${{ runner.temp }}/riff-homelab-validation/plugin-build/package/*.tar.gz
             ${{ runner.temp }}/riff-homelab-validation/plugin-build/package/SHA256SUMS
             ${{ runner.temp }}/riff-homelab-validation/plugin-build/package/acceptance.json
-            ${{ runner.temp }}/riff-homelab-validation/plugin-build/logs/
-            ${{ runner.temp }}/riff-homelab-validation/plugin-build/smoke/
+            ${{ runner.temp }}/riff-homelab-validation/plugin-build/logs/*.log
+            ${{ runner.temp }}/riff-homelab-validation/plugin-build/smoke/*.json
             test-results/
             native-cache-receipts/
           if-no-files-found: warn
