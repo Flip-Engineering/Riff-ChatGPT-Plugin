@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "riff": {
+      "type": "stdio",
+      "command": "${PLUGIN_ROOT}/runtime/python/bin/python3",
+      "args": ["-I", "-B", "${PLUGIN_ROOT}/server/launch.py"],
+      "cwd": "${PLUGIN_ROOT}"
+    }
+  }
+}

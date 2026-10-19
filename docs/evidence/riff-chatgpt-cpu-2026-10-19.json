@@ -1,0 +1,86 @@
+{
+  "schema": "riff.chatgpt.acceptance.v1",
+  "checked_at": "2026-10-19T21:28:08.565993+00:00",
+  "platform": "linux-x86_64",
+  "backend": "cpu",
+  "plugin_version": "0.2.0",
+  "riff_version": "0.6.20",
+  "package_manifest_sha256": "c7fea59cfbbc99414c2b0f8aa1d21f703453b113e0f906cfd415e3abbb8b980d",
+  "native_binary_sha256": "a73b1605147a55f108348832e994fb15d7be7f28b4c7762b17ca9b0fe77a3889",
+  "protocol": "2026-07-28",
+  "real_inference": true,
+  "host": "stdio acceptance client; no production ChatGPT host registration",
+  "tool_count": 18,
+  "ui_bytes": 903362,
+  "models": {
+    "repo": "audio-cpp/Yue2-3B-GGUF",
+    "revision": "9c31f1c64f73d36799693aa89295b410c76928c3",
+    "files": {
+      "yue2-3b-q4_0.gguf": {
+        "bytes": 2665632320,
+        "sha256": "97af67d7f800b362faee6e6bec806bddfcccb93f25fd3f9a1012724d95af6f4a"
+      },
+      "yue2-vae-f16.gguf": {
+        "bytes": 265218656,
+        "sha256": "d4f4a05d8f291ae820cd1e43609da3fa91b56465810091a2b08c3350b751719d"
+      },
+      "sidecars/yue2-model-config.json": {
+        "bytes": 959,
+        "sha256": "ad3477bbef890bf98ae196c1e4b44779494a6231c4ab66f32708eabadf265329"
+      },
+      "sidecars/yue2-generation-config.json": {
+        "bytes": 466,
+        "sha256": "203830cebde6e3644eb291925362990d198e66c3b6006cd11f1aaa21904bcc61"
+      },
+      "sidecars/yue2-qwen.tiktoken": {
+        "bytes": 2561218,
+        "sha256": "b2b1b8dfb5cc5f024bafc373121c6aba3f66f9a5a0269e243470a1de16a33186"
+      },
+      "sidecars/yue2-vae-config.json": {
+        "bytes": 1378,
+        "sha256": "f0191bb9694009956de44e0c361a6f1334760be4c8f848e599bde242a54a0970"
+      }
+    },
+    "verified_bytes": 2933414997
+  },
+  "render": {
+    "job_id": "a2596ceb833c49fb9526e6a4348229be",
+    "track_id": "a2596ceb833c49fb9526e6a4348229be",
+    "states": [
+      "queued",
+      "running",
+      "done"
+    ],
+    "wall_seconds_through_poll_completion": 32.199,
+    "recipe": {
+      "title": "Riff packaged MCP acceptance",
+      "mode": "instrumental",
+      "style": "Instrumental music, no vocals",
+      "lyrics": "",
+      "abc": "",
+      "seed": "1234",
+      "max_seconds": 1,
+      "steps": 2,
+      "solver": "midpoint",
+      "cot": "off",
+      "cfg_scale": 1,
+      "temperature": 1
+    },
+    "audio": {
+      "sha256": "5ed86c834e82da6e29ef317fdd5360d574a67d106e972759b3c9789c0a409c0d",
+      "bytes": 191788,
+      "channels": 2,
+      "sample_rate": 48000,
+      "sample_width": 2,
+      "frames": 47936,
+      "duration": 0.9986666666666667,
+      "absolute_pcm_peak": 0.2265625,
+      "full_scale_samples": 0,
+      "chunks_transferred": 3
+    },
+    "performance_saved": true,
+    "acoustic_saved": true
+  },
+  "persistent_draft_and_settings": true,
+  "status": "passed"
+}

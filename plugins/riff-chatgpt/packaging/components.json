@@ -1,0 +1,52 @@
+{
+  "schema": "riff.chatgpt.components.v1",
+  "python": {
+    "linux-x86_64": {
+      "version": "3.14.7+20260901",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260901/cpython-3.14.7%2B20260901-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "archive": "python-linux-x86_64.tar.gz",
+      "bytes": 35945651,
+      "sha256": "3959f92825141e04adf44982d3a83ee57af0877e893b0796e04c1468749d9b04"
+    },
+    "macos-arm64": {
+      "version": "3.14.7+20260901",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260901/cpython-3.14.7%2B20260901-aarch64-apple-darwin-install_only_stripped.tar.gz",
+      "archive": "python-macos-arm64.tar.gz",
+      "bytes": 26486008,
+      "sha256": "4632cb1a6edad9e73d3c81b6d2e69131637d995173e3e85005df14102b0592ba"
+    }
+  },
+  "control_notices": [
+    {
+      "file": "otp-LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/erlang/otp/OTP-28.0.2/LICENSE.txt",
+      "sha256": "809fa1ed21450f59827d1e9aec720bbc4b687434fa22283c6cb5dd82a47ab9c0"
+    },
+    {
+      "file": "elixir-LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/elixir-lang/elixir/v1.18.4/LICENSE",
+      "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+    },
+    {
+      "file": "elixir-NOTICE.txt",
+      "url": "https://raw.githubusercontent.com/elixir-lang/elixir/v1.18.4/NOTICE",
+      "sha256": "9fd6ebaefd9311b2fabd6b577ee1b55924b378750724f16cd4a30148b4d75463"
+    }
+  ],
+  "cmake": {
+    "linux-x86_64": {
+      "version": "4.4.3",
+      "url": "https://files.pythonhosted.org/packages/0b/d0/18fe62f0bddc8b9bb71ba55762ee48a224f8344101c34350d969f6e0d327/cmake-4.4.3-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+      "archive": "cmake-4.4.3-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+      "bytes": 30231983,
+      "sha256": "bae3c4954623ec4d62e62c70443f0da7988b733111c2871fcc6a31ead5137e20"
+    },
+    "macos-arm64": {
+      "version": "4.4.3",
+      "url": "https://files.pythonhosted.org/packages/da/2e/78cc0dab93ad407e4b126ab6a3c8a6fc3df89011b49e910c5a5e9bda78a6/cmake-4.4.3-py3-none-macosx_10_10_universal2.whl",
+      "archive": "cmake-4.4.3-py3-none-macosx_10_10_universal2.whl",
+      "bytes": 54406608,
+      "sha256": "6c95b37116bb5c714656e4f76931ebdcb739209a1aee91cf51408ccfe137694e"
+    }
+  }
+}
