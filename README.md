@@ -29,6 +29,16 @@ for packaging and acceptance details.
 [YuE2 weights use CC BY-NC 4.0](https://huggingface.co/m-a-p/YuE2-3B).
 The application license does not change the model's terms.
 
+## ChatGPT plugin
+
+The [Riff ChatGPT plugin](plugins/riff-chatgpt/README.md) packages the complete
+visual studio, native runtime and media tools for a local MCP Apps host. The
+studio shares a revisioned draft with ChatGPT and retains scores, LoRAs,
+listening, comparison and exports. Platform packages manage their own model
+downloads and persistent workspace. See the plugin documentation for host
+requirements, build artifacts and the distinction between local execution and
+a hosted ChatGPT web integration.
+
 ## Make, listen, refine
 
 - **An open starting point.** Free play, instrumental direction, supplied lyrics,

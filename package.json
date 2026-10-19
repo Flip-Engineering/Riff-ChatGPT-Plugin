@@ -9,7 +9,9 @@
     "test:exploration": "node tests/exploration.mjs",
     "test:reviews": "node tests/reviews.mjs",
     "test:suite": "node tests/suite.mjs",
-    "test:all-browser": "node tests/all-browser.mjs"
+    "test:all-browser": "node tests/all-browser.mjs",
+    "test:chatgpt": "python3 -m unittest discover -s plugins/riff-chatgpt/tests -p 'test_*.py' -v && node plugins/riff-chatgpt/tests/bridge.test.cjs",
+    "test:chatgpt-browser": "python3 plugins/riff-chatgpt/scripts/build_ui.py --riff-web web && node plugins/riff-chatgpt/tests/browser.test.cjs"
   },
   "devDependencies": {
     "playwright": "1.58.2"

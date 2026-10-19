@@ -1,0 +1,26 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "riff-chatgpt",
+  "version": "0.2.0",
+  "description": "Riff's visual composition studio with native YuE2 generation, scores, LoRAs, listening and exports inside a managed plugin runtime.",
+  "author": {"name": "Flip Engineering"},
+  "homepage": "https://github.com/Flip-Engineering/riff",
+  "repository": "https://github.com/Flip-Engineering/riff",
+  "license": "MIT",
+  "keywords": ["music", "composition", "YuE2", "LoRA", "audio"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Riff",
+        "shortDescription": "Compose, play and shape music",
+        "longDescription": "Open Riff's complete visual studio to compose, edit scores, generate YuE2 music, choose style adapters, compare takes and export recordings. Platform packages include the native engine, Python, media tools and score runtime. The separately licensed music models download with verified progress when requested. Requires a plugin host that executes local stdio MCP servers and displays MCP Apps.",
+        "developerName": "Flip Engineering",
+        "category": "Creativity",
+        "capabilities": ["Interactive"],
+        "defaultPrompt": "Open Riff and help me make a new piece of music.",
+        "logo": "./assets/icon.svg",
+        "composerIcon": "./assets/icon.svg"
+      }
+    }
+  }
+}
