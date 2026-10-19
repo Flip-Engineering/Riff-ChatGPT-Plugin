@@ -1,0 +1,61 @@
+name: Validate ChatGPT browser app
+
+on:
+  pull_request:
+    paths:
+      - 'plugins/riff-chatgpt/**'
+      - 'web/**'
+      - '*.py'
+      - 'tests/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'sources.json'
+      - 'VERSION'
+      - '.github/workflows/chatgpt-plugin-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chatgpt-plugin-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: ChatGPT browser acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the plugin source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Exercise the original studio through the MCP app host
+        run: npm run test:chatgpt-browser
+
+      - name: Retain browser acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: riff-chatgpt-browser
+          path: test-results/chatgpt-plugin/
+          if-no-files-found: warn
