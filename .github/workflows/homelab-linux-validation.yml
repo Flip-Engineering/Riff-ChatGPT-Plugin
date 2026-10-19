@@ -79,10 +79,16 @@ jobs:
       - name: Check Riff runtime resource accounting
         run: elixir runtime/test/resources_test.exs
 
-      - name: Install the Linux packages used by existing checks
+      - name: Verify provisioned Linux build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg build-essential pkg-config nasm zlib1g-dev python3-venv libncurses-dev libssl-dev
+          set -euo pipefail
+          for package in ffmpeg build-essential pkg-config nasm zlib1g-dev python3-venv libncurses-dev libssl-dev; do
+            state="$(dpkg-query -W -f='${db:Status-Status}' "$package" 2>/dev/null || true)"
+            if [ "$state" != installed ]; then
+              echo "Provision the homelab build dependency: $package" >&2
+              exit 1
+            fi
+          done
 
       - name: Run the studio check and Python tests
         run: |
@@ -102,7 +108,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/npm-ci.log"
-          npx playwright install --with-deps chromium 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/playwright-install.log"
+          npx playwright install chromium 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/playwright-install.log"
           npm run test:all-browser 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/browser-tests.log"
           npm run test:chatgpt-browser 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/plugin-browser-tests.log"
 
