@@ -43,7 +43,7 @@ jobs:
               "runner_name": os.environ.get("RUNNER_NAME"),
               "runner_labels": ["self-hosted", "Linux", "X64", "baton2-native-linux-x64"],
               "kernel": platform.release(),
-              "scope": ["python", "javascript", "browser", "linux-cpu-native"],
+              "scope": ["python-3.9-and-3.14", "javascript", "browser", "linux-cpu-native", "score", "acoustic", "source-release", "linux-plugin-package"],
           }, sort_keys=True, indent=2))
           PY
 
