@@ -127,7 +127,7 @@ component licenses remain distinct from the MIT application license; see
 The plugin can write with ChatGPT, Riff's phrase workflow, or an OpenRouter
 provider configured in the studio. It does not bundle the optional MLX writer.
 On macOS, provider keys use a separate `Riff ChatGPT OpenRouter` Keychain
-service. On Linux, when `secret-tool` is unavailable, the studio explicitly
+service. On Linux, when `secret-tool` or a usable session-bus route is unavailable, the studio explicitly
 labels the shared writing/review credential store as **Session only — cleared
 when Riff closes**. This in-memory fallback does not silently write plaintext
 keys or require the user to install a keyring utility. App settings mutations
@@ -178,7 +178,7 @@ For macOS ARM64, use `--platform macos-arm64` and `--backend metal`. Before the
 control build, run the existing private crypto builder:
 
 ```bash
-elixir desktop/build_openssl.exs --output "$build_root/openssl" --jobs 2
+elixir riff/desktop/build_openssl.exs --output "$build_root/openssl" --jobs 2
 python3 -B plugins/riff-chatgpt/packaging/build_control.py \
   --output "$build_root/control" --crypto-build "$build_root/openssl"
 ```

@@ -1,0 +1,158 @@
+{
+  "schema": "riff.chatgpt.downstream-validation.v1",
+  "date": "2026-10-20",
+  "plugin_commit": "d49e3b7bf142a8ce8268fd55b6b978fee9704eb4",
+  "riff_commit": "b7ab93cf22ffd9e95a7718aca2e0d451578411b1",
+  "host": "atari-homelab",
+  "execution": "owned homelab, isolated NVMe workspace",
+  "python_tests": {
+    "passed": 89
+  },
+  "packaging_tests": {
+    "passed": 5
+  },
+  "bridge_tests": {
+    "passed": 26
+  },
+  "browser": {
+    "checks": [
+      "The original studio, score workspace, library, comparison and producer panels load in an opaque sandbox through the real MCP resource",
+      "Chunked WAV media decodes and plays; A/B switching keeps the creative draft",
+      "Draft saves round-trip to SQLite; agent edits sync; concurrent local edits produce a recoverable conflict",
+      "Explicit ChatGPT writing, background structured context, draft attachment and fullscreen use host protocol methods",
+      "Managed studio settings retain CPU tuning and expose the real pinned model setup while hiding fixed installation paths",
+      "Community search, safe cards, preview playback, verified installation and binary safetensors import use actual backend LoRA code",
+      "The real queue creates a recording, with complete adapter provenance; audio inference itself is an explicit test double",
+      "WAV, recipe and seed artwork exports reach ui/download-file with real bytes despite an iframe without allow-downloads",
+      "Original ABC import, notation editing, MIDI/ABC exports and queued score composition operate through the plugin",
+      "Optional review settings, model refresh, queued listening notes, recommended-recipe export and key removal preserve the original workflow without exposing credentials to chat",
+      "The bundled video worker produces PNG frames; staged frame uploads and real FFmpeg finish a playable MP4 with original audio",
+      "Responsive original UI and host-directed recording deep links work without iframe URL navigation",
+      "A host denying blob media/workers still plays data-URL audio and encodes frames with the original canvas fallback",
+      "View teardown acknowledges cleanup while the shared backend and saved music remain available"
+    ],
+    "runtime": "production ManagedRiff + stdio MCP",
+    "test_doubles": [
+      "neural inference",
+      "model admission",
+      "Hugging Face",
+      "review provider"
+    ],
+    "browser": "145.0.7632.6",
+    "errors": [],
+    "frame_network_requests": [
+      "blob:null/34bb21d8-67c1-4268-9962-0cd784e094ce",
+      "blob:null/34bb21d8-67c1-4268-9962-0cd784e094ce",
+      "blob:null/3ec66558-dab4-4795-b949-a2f11400c756",
+      "blob:null/34bb21d8-67c1-4268-9962-0cd784e094ce",
+      "blob:null/693ce882-d72e-4ba4-97e5-0e6b10dc4372",
+      "blob:null/a0a346e7-ecfc-4c47-8724-107022423c9b",
+      "blob:null/0ea92f26-b598-4744-841d-5063896ef976",
+      "blob:null/3ec66558-dab4-4795-b949-a2f11400c756"
+    ],
+    "tool_calls": 103
+  },
+  "control": {
+    "schema": "riff.chatgpt.control.v1",
+    "versions": "Erlang/OTP 28 [erts-16.0.2] [source] [64-bit] [smp:2:2] [ds:1:1:1] [async-threads:1] [jit:ns]\n\nElixir 1.18.4 (compiled with Erlang/OTP 28)\n",
+    "rust": "rustc 1.89.0 (29483883e 2025-08-04)",
+    "inputs_sha256": {
+      "installer/.formatter.exs": "312fa32f2c1c359e5a449cc95c4e7f78baff2273d383a0c6bd92ceed2c42c895",
+      "installer/config/config.exs": "021c80a18a9d1db0a26fe84cc89bf32fa35a83af93f449d5838732c18d2e7302",
+      "installer/config/runtime.exs": "fd92999f686f791c5ce7b2f8466e59ca9868cfd07b4842958e1570a887941e3b",
+      "installer/lib/riff/installer/app_entry.ex": "a228501b6274bed192a6456182f42b90e2029ce29fdbba7dd0fbe0521a0f1e96",
+      "installer/lib/riff/installer/application.ex": "75d2771195dfc944c664c0bf1b85479ee61083b04a788e7a0ef84911873129d4",
+      "installer/lib/riff/installer/desktop.ex": "2fab7c98f55368dfe330e26d7ff15fd095618e81923194fa5b3f879f829bf37b",
+      "installer/lib/riff/installer/download.ex": "a7a344f520bdc9daea00de87f4d8734b3bba8359d9558aaa2b0dc295c5da7aaf",
+      "installer/lib/riff/installer/lock.ex": "a13cb21689dd098221fa7b9d336f6eaf8c156a1ab69ee70889dacc51845d2b7b",
+      "installer/lib/riff/installer/manifest.ex": "3be3273a37e906db2663a2735a5136f6b2062dcc1122ac47257edb5e32699c1d",
+      "installer/lib/riff/installer/payload.ex": "7cb6e1f52a04da464244ee76fb948e7bb7b34022f1e9218f2ac87e825849e277",
+      "installer/lib/riff/installer/router.ex": "ba967a5faf0083d0b8b2bcca05339f280893948e84b1f5dbc6283c2b206c6a89",
+      "installer/lib/riff/installer/session.ex": "da93323962005d6aca8e20676edd36001b5a68d5badca7a3fa7999b93a9f6790",
+      "installer/lib/riff/installer/transaction.ex": "290d96172eeb27df37618bc05cff3fec53dbee786c1f9f694c2c822546a4aa67",
+      "installer/lib/riff/installer/update.ex": "ea6268c6fabd630c2488981830052f2dccd9a27a49f40a81301aa6d0279b1613",
+      "installer/mix.exs": "6bf1dfd48b181ada5a3119b2057250e307871283a0661c0180bf478257857951",
+      "installer/mix.lock": "64aec6e27d493e9687719107fd0918cb25d925e0ca258aab5a014c67eb991184",
+      "installer/native/file_lock.rs": "64bc63852365ec1198c98d02bac6f96dae1a7773d9f99a51c4cf90d5360b423d",
+      "installer/native/macos_launcher.rs": "e1ad2af8ce4e7c6f7d089ee9fa3f1d2c61a5f61af221404c2de21b184be83543",
+      "installer/native/studio_launcher.rs": "42f828862fa129d3b72dd09629c3c6e5d62ddff049b7901c14fc41c5e5d9c689",
+      "installer/rel/env.sh.eex": "be3726a4cf10595dd162bc765569af89b4c56082c8597db3b513cd4b451a8410",
+      "installer/scripts/crypto_component.exs": "99cc84d556ae49fe571dd33450bb1424f66da7cbd3ab119564295f3e73067c91",
+      "installer/scripts/inspect_release.exs": "bd811c7a31b41789c8e9e4df743982d30308026eeaf9f9cdf349ee12e09dd5d0",
+      "installer/scripts/otp_runtime.exs": "3eda798e0842f4dc95b03e6811a646029da001e63d6889a5a036e389be8a3087",
+      "installer/scripts/package_macos.exs": "9d9bacac14b2a0df0832485346387924ef754c1e1965385b4c5470e1917b1c71",
+      "installer/scripts/rust_notices.exs": "312ae98ebb1e49b90f981778d16d4b7c3aba2a790a1e358afa6cd7089e03b451",
+      "installer/test/acoustic_artifact_test.exs": "ce271f63d81a289138107d900a58f6da5c3c339f4087711e85cf4da7888059c8",
+      "installer/test/acoustic_checkpoint_test.exs": "279ee89152ee228bbb838379aaa4261682116ef772d20975f7fb1dab0a16fdaf",
+      "installer/test/app_entry_test.exs": "e85c4c357bd9e0d4ac2638ea513f5d80ebcfe7ce122a892471c7ab259e66e084",
+      "installer/test/application_boot.exs": "31086ffa905bad2e4fbadaee576b958a35866b0522348decdb28f5fbf089d046",
+      "installer/test/browser_fixture.exs": "4d4dbc0435e5826e40280303ad6fdd7abf5677a32efb6b60d780c01c876af9d2",
+      "installer/test/crypto_component_test.exs": "5f2ca3f84a23f64fd59d8f3a61825e13e6e94763c5a6aa72d5ffd11c0cdb2b3e",
+      "installer/test/desktop_gui_fixture.exs": "710b35b0e9cbf88c71073284760dd0df4b2c0dffda86fe7447f25f8dffd0c337",
+      "installer/test/desktop_restart_test.exs": "31c63b971c7f563766734d2bae0eb43aca74df6932ceb747caea277cbab64bd4",
+      "installer/test/download_test.exs": "7831caa90938d0779f0ebaa570efaea3a59e988860f2446977c7b1bdc8a93d1b",
+      "installer/test/lock_test.exs": "3fa614dd2de89bbd8c482b98fdabc573d3890af979c38508b515dd079d141cf5",
+      "installer/test/manifest_test.exs": "117bd73f2889471fc9f207a78546c01d6e96486c7b6d9a32eaa57e1280d5947b",
+      "installer/test/memory_probe.exs": "829f087ce30155275c170e18fb444b2ff85e31b07a2613aed92f0805b25a3c8e",
+      "installer/test/otp_runtime_test.exs": "3c0e260de46c2c5ff1dd718dac911e36d33dcbe10463ea84ba99fe6e5c27bd39",
+      "installer/test/payload_update_test.exs": "ba2da10637a9c4a5da89f6406bc497f517d6ecf0687b0de030db321937196ce1",
+      "installer/test/router_test.exs": "381381694f4dde5c12863ae00f1dbc67304367f3f46dac0f0c5df8e26f8ba02b",
+      "installer/test/rust_notices_test.exs": "bdd2a06f9312e9481a890602627af24e9c5f82684a6a397bb6af624e1c53a1fa",
+      "installer/test/scheduler_port_test.exs": "64c232d86f2fc312da0b15d3b9454e1b228e7888fc086342eb3a96415a20865f",
+      "installer/test/score_artifact_test.exs": "595cae3f283a4453bca2a87531eec12f1d72b7793e19887d0ef5d195ee61c0fb",
+      "installer/test/session_test.exs": "5ba63578d76639b7a13268ad4a59b8e854d62e3ae54f07b6b2b0ce3289a78ba7",
+      "installer/test/support/fixture.ex": "604fe67dfd5c1e66e59ca19b551dece5609aa817d508d265e887b64ed2a2aefa",
+      "installer/test/support/scheduler_io.ex": "473a513ea72c41c2a630e5f338b608488708e455771c02590afb36fed106e582",
+      "installer/test/test_helper.exs": "b086ec47f0c6c7aaeb4cffca5ae5243dd05e0dc96ab761ced93325d5315f4b12",
+      "installer/test/transaction_test.exs": "f2e5baeec91852512ea8c80925724a5492cbedf32ecaa847028e2d7c1377d7aa",
+      "runtime/lib/riff/runtime/acoustic_artifact.ex": "5b9983bfbb498fe6e759c31d6c543c5085269d9b7226ee3f7c6f9ce493f301ad",
+      "runtime/lib/riff/runtime/acoustic_checkpoint.ex": "1376ecc54a30a5fd2bd9ea389aad76c9663ae27bd3e249bd2a9adabedf2f9ae8",
+      "runtime/lib/riff/runtime/admission.ex": "5f2c37c8a678c8e757058363cf8be322c675b843b078c60cc4dd1d7cb6b9ec61",
+      "runtime/lib/riff/runtime/resources.ex": "b9919768dc7596c664a5d835f75cc811516756580e7dcdb40902b3f30cd23a2f",
+      "runtime/lib/riff/runtime/scheduler_port.ex": "5eea1af8644ec5efb8cd4af69533bb549c548cab4047620d04a6ac8a1ba6eeee",
+      "runtime/lib/riff/runtime/score_artifact.ex": "a6877e34ee3f64e7a64fc602c8e73d010c340e64673f595438a5743cf5e898a2",
+      "runtime/test/admission_test.exs": "47c1f724a5c187fb8a35b35ba22d92baf3697365261f7bdb42ebf66e9f619956",
+      "runtime/test/resources_test.exs": "410b77498e4ef445ae55a0aafc9d5b081ac15180120c9ee2ff547c24ce3e2ed1"
+    },
+    "capabilities": {
+      "artifacts": {
+        "acoustic": "riff.yue2.acoustic.v1",
+        "score": "riff.yue2.score-tokens.v1"
+      },
+      "state": "capabilities"
+    },
+    "private_crypto": null,
+    "mix_lock_sha256": "64aec6e27d493e9687719107fd0918cb25d925e0ca258aab5a014c67eb991184"
+  },
+  "native_proof": {
+    "schema": "riff.chatgpt.native.v1",
+    "runtime_commit": "fbe3eedbf6c504e45189e2cdcf1b257740a28863",
+    "patched_tree": "a4e848c3ca97fa030cfbaaec4486386d20d234d5",
+    "sources_sha256": "f31f9ae816cb9546996b10d36daa737c29d2997c0500214bf18389dbf1a15609",
+    "binary_sha256": "02f5842e0a9512f9ae6d0fac0ba48b792e8f621beec92c6b762b1b5b963cfa21",
+    "capabilities": {
+      "feature.yue2.score_tokens": "1",
+      "format.yue2.score_tokens": "riff.yue2.score-tokens.v1",
+      "format.yue2.prefix": "riff.yue2.prefix.v1",
+      "feature.yue2.acoustic_checkpoint": "1",
+      "feature.yue2.acoustic_decode": "1",
+      "format.yue2.acoustic": "riff.yue2.acoustic.v1",
+      "feature.yue2.keep_resident": "1",
+      "format.yue2.jobs": "riff.jobs.v1",
+      "feature.yue2.lora": "1",
+      "format.yue2.lora": "riff.yue2.lora.v1"
+    },
+    "cpu_features": [
+      "avx2",
+      "fma",
+      "bmi2",
+      "f16c"
+    ],
+    "cmake_cache_sha256": "c57e26544d331a94d583d5fd9b7d951842e728bcb45c1d1c15a1a5e6b3e28dd5"
+  },
+  "limits": [
+    "Browser inference, admission, Hub and provider services use explicit fixtures.",
+    "The native proof verifies source and capabilities, not a fresh neural render.",
+    "No new complete platform distribution or real ChatGPT host installation was validated."
+  ]
+}
