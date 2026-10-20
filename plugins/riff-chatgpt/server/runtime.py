@@ -240,6 +240,12 @@ class ManagedMaintenance:
                     log.write(f"Verified {name}: {expected['sha256']}\n")
                     log.flush()
                 write_json(self.model_root / "manifest.json", self.manifest)
+                # The pinned native help probe needs model sidecars. A probe
+                # before first setup caches missing features; refresh it now
+                # that the verified model installation is complete.
+                engine = sys.modules.get("run")
+                if engine:
+                    engine._engine_capabilities.cache_clear()
                 self._progress("Music models verified. Ready to make music.", received_total)
                 with self.lock:
                     self.task["status"] = "done"
@@ -270,7 +276,7 @@ class ManagedMaintenance:
 
 
 class ManagedRiff:
-    def __init__(self, source: Path, workspace: Path, bundle=None):
+    def __init__(self, source: Path, workspace: Path, bundle=None, *, server_factory=None):
         self.source, self.workspace = source.resolve(), workspace.resolve()
         self.bundle_root = Path(os.environ["RIFF_PLUGIN_BUNDLE_ROOT"]) if os.environ.get("RIFF_PLUGIN_BUNDLE_ROOT") else None
         self.bundle = bundle or (json.loads((self.bundle_root / "runtime/runtime.json").read_text()) if self.bundle_root else None)
@@ -278,6 +284,7 @@ class ManagedRiff:
         self.lock_file = self.thread = self.credentials = None
         self._original_keychain = None
         self._work_stopped = False
+        self.server_factory = server_factory
 
     def __enter__(self):
         if not (self.source / "studio.py").is_file():
@@ -329,8 +336,12 @@ class ManagedRiff:
                 self.generator = studio.Generator(store)
                 self.reviews = studio.Reviews(store, keychain=keychain.Keychain())
                 self.maintenance = ManagedMaintenance(self.source, self.workspace, self.generator, self.reviews, self.bundle)
-                self.server = studio.StudioServer(("127.0.0.1", 0), store, self.generator,
-                                                  self.reviews, self.maintenance)
+                self.server = (self.server_factory(studio, store, self.generator, self.reviews, self.maintenance)
+                               if self.server_factory else
+                               studio.StudioServer(("127.0.0.1", 0), store, self.generator,
+                                                   self.reviews, self.maintenance))
+            if self.server_factory:
+                return self.server
             self.thread = threading.Thread(target=self.server.serve_forever, name="riff-plugin-http", daemon=True)
             self.thread.start()
             self.lock_file.seek(0)

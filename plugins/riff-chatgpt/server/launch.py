@@ -49,6 +49,8 @@ def validate_bundle(root, *, host_python=False):
                 "runtime/media/ffmpeg", "runtime/media/ffprobe", "runtime/control/bin/riff_installer"}
     if not host_python:
         required.add("runtime/python/bin/python3")
+    else:
+        required.update({"server/cloud.py", "server/inprocess.py"})
     if not required.issubset(seen):
         raise ValueError("The plugin bundle is missing required runtime components.")
     config = json.loads(config_path.read_text())

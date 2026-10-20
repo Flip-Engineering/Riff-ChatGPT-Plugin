@@ -20,7 +20,8 @@ python3 /absolute/path/to/this/skill/scripts/riff.py start
 python3 /absolute/path/to/this/skill/scripts/riff.py call riff_read --arguments '{"path":"/api/state"}'
 ```
 
-The private worker is designed to persist between execution calls. Verify it
+The private filesystem-mailbox worker opens no network or Unix sockets.
+Its native routes run in process. The worker is designed to persist between execution calls. Verify it
 is still running before reusing it; host session lifetime is not guaranteed. Jobs,
 saved drafts, models and recordings live outside the replaceable plugin package.
 A new/reset cloud computer may need setup again. Save requested outputs to the
@@ -29,7 +30,7 @@ user's Library; do not claim storage survives cloud computer deletion.
 ## First use
 
 Run `start`, then read `/api/state` and `/api/capabilities` with `riff_read`.
-If music models are missing, use `riff_setup` with `{}` and poll `/api/system`
+If music models are missing, use `riff_setup` with `{"action":"setup"}` and poll `/api/system`
 until the setup task completes. These are the pinned YuE2 model files, whose
 license is CC-BY-NC-4.0; include the model terms when relevant to a commercial
 use request. Report actual readiness and errors. Do not replace the engine,

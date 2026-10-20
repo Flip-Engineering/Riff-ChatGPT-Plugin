@@ -1,111 +1,115 @@
 #!/usr/bin/env python3
-"""Run Riff inside the current user's ChatGPT Work cloud computer.
+"""Run the bundled Riff runtime in Chat using a private disk-backed mailbox.
 
-A private Unix socket keeps native jobs alive between cloud tool calls. There
-is no external backend, public listener, account credential, or local computer.
+No listening or Unix sockets are required. The existing native studio handlers
+run in the worker process; original jobs, validation and rendering are retained.
 """
 from __future__ import annotations
 import argparse
 import contextlib
 import fcntl
-import hashlib
-import stat
 import json
 import os
 from pathlib import Path
 import signal
-import socket
-import socketserver
+import sqlite3
 import subprocess
 import sys
-import threading
 import time
-from launch import ROOT, validate_bundle, environment, workspace_default
-from adapter import Adapter, DraftStore, LoopbackBackend, MAX_INPUT
+import uuid
+from launch import ROOT, validate_bundle, environment
+from adapter import Adapter, DraftStore, MAX_INPUT
 from main import RPC, CURRENT_PROTOCOL, PROTOCOL_KEY, CLIENT_CAPABILITIES_KEY
-from runtime import ManagedRiff
+from runtime import ManagedRiff, write_json
+from inprocess import InProcessBackend
 
 
-def socket_path(workspace):
-    # Linux pathname sockets have a 108-byte physical limit. User workspaces
-    # and plugin caches can be much longer, so use a short private directory.
-    directory=Path('/tmp')/('riff-cloud-'+str(os.getuid()))
-    directory.mkdir(mode=0o700,exist_ok=True)
-    info=directory.lstat()
-    if not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode & 0o077:
-        raise ValueError('The cloud socket directory must be private and owned by this user.')
-    return directory/hashlib.sha256(str(workspace).encode()).hexdigest()
+@contextlib.contextmanager
+def mailbox(workspace):
+    db=sqlite3.connect(workspace/'cloud-mailbox.sqlite3',timeout=30)
+    db.execute('CREATE TABLE IF NOT EXISTS requests (id TEXT PRIMARY KEY, payload TEXT NOT NULL, state TEXT NOT NULL, response TEXT)')
+    try:
+        with db:
+            yield db
+    finally:
+        db.close()
 
 
-class Handler(socketserver.StreamRequestHandler):
-    def handle(self):
-        raw = self.rfile.readline(MAX_INPUT + 4097)
-        if len(raw) > MAX_INPUT + 4096:
-            self.wfile.write((json.dumps(RPC.error(None,-32600,'Cloud request exceeds the transfer limit.'))+'\n').encode())
-            return
-        message = json.loads(raw)
-        if message.get('method') == 'cloud/stop':
-            result = {'jsonrpc':'2.0','id':message.get('id'),'result':{'stopping':True}}
-            threading.Thread(target=self.server.shutdown, daemon=True).start()
-        else:
-            result = RPC(self.server.adapter).handle(message)
-        self.wfile.write((json.dumps(result, allow_nan=False)+'\n').encode())
-
-
-class Server(socketserver.ThreadingUnixStreamServer):
-    daemon_threads = True
+def exchange(workspace,message,timeout=300):
+    raw=json.dumps(message,allow_nan=False)
+    if len(raw.encode())>MAX_INPUT+4096:
+        raise ValueError('Cloud request exceeds the transfer limit.')
+    request_id=uuid.uuid4().hex
+    with mailbox(workspace) as db:
+        db.execute('INSERT INTO requests VALUES(?,?,?,NULL)',(request_id,raw,'pending'))
+    deadline=time.monotonic()+timeout
+    while time.monotonic()<deadline:
+        with mailbox(workspace) as db:
+            row=db.execute('SELECT state,response FROM requests WHERE id=?',(request_id,)).fetchone()
+            if row and row[0]=='complete':
+                result=json.loads(row[1])
+                db.execute('DELETE FROM requests WHERE id=?',(request_id,))
+                return result
+        time.sleep(.05)
+    raise TimeoutError('Riff command timed out; request '+request_id+' remains in the mailbox. Inspect it before retrying a mutation.')
 
 
 def serve(workspace):
-    validate_bundle(ROOT, host_python=True)
-    environment(ROOT, workspace)
+    validate_bundle(ROOT,host_python=True)
+    environment(ROOT,workspace)
     os.umask(0o077)
-    path = socket_path(workspace)
     def stop(*_):
         raise KeyboardInterrupt
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        signal.signal(sig, stop)
-    # ManagedRiff holds its exclusive workspace lock before touching the socket.
-    with ManagedRiff(ROOT/'riff', workspace) as port:
-        path.unlink(missing_ok=True)
-        adapter = Adapter(LoopbackBackend(port), DraftStore(workspace/'adapter-draft.sqlite3'), ROOT/'dist/studio.html')
+    for sig in (signal.SIGTERM,signal.SIGINT):
+        signal.signal(sig,stop)
+    with ManagedRiff(ROOT/'riff',workspace,server_factory=InProcessBackend) as backend:
+        adapter=Adapter(backend,DraftStore(workspace/'adapter-draft.sqlite3'),ROOT/'dist/studio.html')
+        record=workspace/'cloud-process.json'
         try:
-            with Server(str(path), Handler) as server:
-                server.adapter = adapter
-                (workspace/'cloud-process.json').write_text(json.dumps({'pid':os.getpid(),'bundle':str(ROOT)}))
-                try:
-                    server.serve_forever()
-                except KeyboardInterrupt:
-                    pass
+            with mailbox(workspace) as db:
+                # An interrupted mutation must never be replayed automatically.
+                db.execute("UPDATE requests SET state='complete',response=? WHERE state='running'",
+                           (json.dumps(RPC.error(None,-32603,'The previous Riff worker stopped during this request. Inspect job state before retrying.')),))
+            write_json(record,{'pid':os.getpid(),'bundle':str(ROOT),'transport':'sqlite-inprocess'})
+            while True:
+                with mailbox(workspace) as db:
+                    row=db.execute("SELECT id,payload FROM requests WHERE state='pending' ORDER BY rowid LIMIT 1").fetchone()
+                    if row:
+                        db.execute("UPDATE requests SET state='running' WHERE id=?",(row[0],))
+                if not row:
+                    time.sleep(.05);continue
+                message=json.loads(row[1])
+                stopping=message.get('method')=='cloud/stop'
+                result=({'jsonrpc':'2.0','id':message.get('id'),'result':{'stopping':True}}
+                        if stopping else RPC(adapter).handle(message))
+                with mailbox(workspace) as db:
+                    db.execute("UPDATE requests SET state='complete',response=? WHERE id=?",(json.dumps(result,allow_nan=False),row[0]))
+                if stopping:break
+        except KeyboardInterrupt:
+            pass
         finally:
             adapter.close()
-            path.unlink(missing_ok=True)
-            (workspace/'cloud-process.json').unlink(missing_ok=True)
+            record.unlink(missing_ok=True)
 
 
-def exchange(workspace, message):
-    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
-        client.connect(str(socket_path(workspace)))
-        client.sendall((json.dumps(message, allow_nan=False)+'\n').encode())
-        with client.makefile('rb') as stream:
-            return json.loads(stream.readline())
-
-
-def ensure(workspace, startup_seconds):
+def ensure(workspace,startup_seconds):
     workspace.mkdir(parents=True,exist_ok=True,mode=0o700)
     if workspace.is_relative_to(ROOT):
         raise ValueError('Keep the cloud workspace outside the replaceable plugin package.')
     with (workspace/'cloud-start.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
-        if socket_path(workspace).exists():
+        record=workspace/'cloud-process.json'
+        if record.exists():
+            current=json.loads(record.read_text())
             try:
-                exchange(workspace,{'jsonrpc':'2.0','id':0,'method':'ping'})
-                current=json.loads((workspace/'cloud-process.json').read_text())
-                if current['bundle'] != str(ROOT):
+                os.kill(current['pid'],0)
+            except ProcessLookupError:
+                record.unlink(missing_ok=True)
+            else:
+                if current['bundle']!=str(ROOT):
                     raise ValueError('Another Riff package owns this workspace. Stop it before switching packages.')
+                exchange(workspace,{'jsonrpc':'2.0','id':0,'method':'ping'},timeout=startup_seconds)
                 return
-            except (ConnectionError,FileNotFoundError):
-                pass
         with (workspace/'cloud.log').open('ab') as log:
             process=subprocess.Popen([sys.executable,'-B',str(ROOT/'server/cloud.py'),'--workspace',str(workspace),'_serve'],
                 stdin=subprocess.DEVNULL,stdout=log,stderr=log,start_new_session=True)
@@ -113,19 +117,16 @@ def ensure(workspace, startup_seconds):
         while time.monotonic()<deadline:
             if process.poll() is not None:
                 raise RuntimeError('Riff cloud startup failed. Inspect '+str(workspace/'cloud.log'))
-            if socket_path(workspace).exists():
-                try:
-                    exchange(workspace,{'jsonrpc':'2.0','id':0,'method':'ping'})
-                    return
-                except (ConnectionError,FileNotFoundError):
-                    pass
+            if record.exists():
+                exchange(workspace,{'jsonrpc':'2.0','id':0,'method':'ping'},timeout=max(.1,deadline-time.monotonic()))
+                return
             time.sleep(.1)
         raise TimeoutError('Riff startup exceeded the configured transport deadline. Inspect cloud.log before retrying.')
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--workspace',type=Path,default=workspace_default())
+    parser.add_argument('--workspace',type=Path,default=Path.cwd()/"riff-workspace")
     parser.add_argument('--startup-seconds',type=float,default=120,help='Cloud process startup deadline')
     sub=parser.add_subparsers(dest='command',required=True)
     sub.add_parser('_serve')
@@ -151,7 +152,8 @@ def main():
         '_meta':{PROTOCOL_KEY:CURRENT_PROTOCOL,CLIENT_CAPABILITIES_KEY:{}}}})
     if args.output_file:
         args.output_file.parent.mkdir(parents=True,exist_ok=True)
-        with args.output_file.open('w',opener=lambda path,flags:os.open(path,flags,0o600)) as stream:
+        with open(args.output_file,'w',opener=lambda path,flags:os.open(path,flags,0o600)) as stream:
+            os.fchmod(stream.fileno(),0o600)
             json.dump(result,stream,allow_nan=False)
     # Do not copy app-only binary chunks or provider keys into model context.
     if isinstance(result.get('result'),dict):

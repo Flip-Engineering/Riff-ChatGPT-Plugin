@@ -42,3 +42,62 @@ class BootstrapTests(unittest.TestCase):
             self.archive(name,link)
             with self.assertRaises(ValueError):cloud.bootstrap(self.skill)
         self.assertFalse((self.root/'escape').exists())
+
+class ChatRuntimeTests(unittest.TestCase):
+    def test_native_handlers_and_drafts_work_when_all_sockets_are_denied(self):
+        import subprocess
+        import sys
+        repo=Path(__file__).resolve().parents[3]
+        code=r'''
+import json,os,sys
+from pathlib import Path
+from unittest.mock import patch
+repo,workspace=map(Path,sys.argv[1:])
+os.environ['RIFF_HOME']=str(workspace)
+sys.path.insert(0,str(repo/'plugins/riff-chatgpt/server'))
+from runtime import ManagedRiff
+from inprocess import InProcessBackend
+from adapter import Adapter,DraftStore
+from routes import AdapterError
+with patch('socket.socket',side_effect=PermissionError(1,'Operation not permitted')):
+    with ManagedRiff(repo/'riff',workspace,server_factory=InProcessBackend) as backend:
+        status,capabilities=backend.json_request('/api/capabilities')
+        assert status==200 and capabilities['model']=='YuE2'
+        status,state=backend.json_request('/api/state')
+        assert status==200 and state['tracks']==[]
+        adapter=Adapter(backend,DraftStore(workspace/'draft.sqlite3'),repo/'plugins/riff-chatgpt/dist/studio.html')
+        recipe={'title':'No sockets','seed':'1234','max_seconds':1,'steps':2}
+        saved=adapter.call('riff_save_draft',{'recipe':recipe,'expected_revision':0})
+        assert saved['structuredContent']['body']=={'revision':1,'recipe':recipe}
+        assert adapter.call('riff_get_draft',{})['structuredContent']['body']=={'revision':1,'recipe':recipe}
+        try:
+            adapter.call('riff_save_draft',{'recipe':{},'expected_revision':0})
+            raise AssertionError('stale write accepted')
+        except AdapterError as error:
+            assert 'conflict' in str(error).lower()
+        adapter.close()
+print('native routes and draft persistence passed with socket creation denied')
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            result=subprocess.run([sys.executable,'-B','-c',code,str(repo),tmp],capture_output=True,text=True,timeout=60)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('socket creation denied',result.stdout)
+
+    def test_cli_writes_full_result_to_private_output_file(self):
+        import contextlib
+        import sys
+        server=Path(__file__).parents[1]/'server'
+        sys.path.insert(0,str(server))
+        self.addCleanup(lambda:sys.path.remove(str(server)))
+        spec=importlib.util.spec_from_file_location('riff_cloud_worker_test',server/'cloud.py')
+        worker=importlib.util.module_from_spec(spec);spec.loader.exec_module(worker)
+        with tempfile.TemporaryDirectory() as tmp:
+            output=Path(tmp)/'result.json'
+            payload={'result':{'structuredContent':{'status':200},'_meta':{'private':'bytes'}}}
+            args=['riff','--workspace',tmp,'call','riff_get_draft','--output-file',str(output)]
+            stdout=io.StringIO()
+            with patch.object(sys,'argv',args),patch.object(worker,'ensure'),patch.object(worker,'exchange',return_value=payload),contextlib.redirect_stdout(stdout):
+                worker.main()
+            self.assertEqual(json.loads(output.read_text())['result']['_meta'],{'private':'bytes'})
+            self.assertEqual(output.stat().st_mode & 0o777,0o600)
+            self.assertNotIn('_meta',json.loads(stdout.getvalue())['result'])

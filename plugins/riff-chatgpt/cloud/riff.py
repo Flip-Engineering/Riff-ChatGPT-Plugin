@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify/unpack the bundled Linux runtime, then execute it in Work Cloud."""
+"""Verify/unpack the bundled Linux runtime, then execute it in Chat."""
 import fcntl
 import hashlib
 import json
@@ -18,7 +18,7 @@ def bootstrap(skill):
         digest=hashlib.file_digest(stream,'sha256').hexdigest()
     if digest!=pin['sha256'] or archive.stat().st_size!=pin['bytes']:
         raise ValueError('The bundled cloud runtime failed its integrity check.')
-    cache=Path(os.environ.get('XDG_CACHE_HOME',str(Path.home()/'.cache')))/'riff-chatgpt'/digest
+    cache=Path(os.environ.get('XDG_CACHE_HOME',str(Path.cwd()/'.riff-chatgpt-cache')))/'riff-chatgpt'/digest
     cache.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
     with (cache.parent/(digest+'.lock')).open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)

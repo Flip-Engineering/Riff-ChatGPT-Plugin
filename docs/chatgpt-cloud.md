@@ -48,9 +48,11 @@ Elixir/ERTS score/control runtime, media executables, libraries, studio source
 and component notices. The separately licensed music models download from the
 pinned public Hugging Face revision into the user's cloud workspace.
 
-A worker inside that cloud computer owns a private Unix socket. Successive
+A worker inside that cloud computer uses a private SQLite mailbox. Native
+studio request handlers run in that same process without an HTTP listener.
+Successive
 cloud command calls use the existing adapter and share the same native jobs,
-drafts, LoRA library and recordings. No public port or developer credentials
+drafts, LoRA library and recordings. No network/Unix listener or developer credentials
 are needed. The original stdio/MCP App distribution remains separate.
 
 Build a complete Linux CPU platform package with the existing builder, then:
