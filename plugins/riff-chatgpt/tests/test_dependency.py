@@ -1,5 +1,6 @@
 """The downstream must use its reviewed, immutable upstream source."""
 import sys
+import json
 from pathlib import Path
 import subprocess
 import unittest
@@ -20,6 +21,7 @@ class DependencyTests(unittest.TestCase):
                 riff_root()
 
     def test_modified_upstream_is_rejected(self):
-        with patch("riff_dependency.subprocess.run", return_value=subprocess.CompletedProcess([], 1)):
+        revision = json.loads((Path(__file__).resolve().parents[3] / "upstream.lock.json").read_text())["revision"]
+        with patch("riff_dependency.subprocess.check_output", return_value=revision), patch("riff_dependency.subprocess.run", return_value=subprocess.CompletedProcess([], 1)):
             with self.assertRaisesRegex(RuntimeError, "tracked modifications"):
                 riff_root()

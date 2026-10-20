@@ -1,0 +1,183 @@
+name: Build ChatGPT plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      render:
+        description: Download the pinned models and run a short native MCP render on both targets
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chatgpt-plugin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    name: ${{ matrix.platform }} / ${{ matrix.backend }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: '["self-hosted","Linux","X64","baton2-native-linux-x64"]'
+            platform: linux-x86_64
+            backend: cpu
+          - runner: '["self-hosted","macOS","ARM64"]'
+            platform: macos-arm64
+            backend: metal
+    runs-on: ${{ fromJSON(matrix.runner) }}
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    env:
+      RIFF_PLUGIN_TARGET: ${{ matrix.platform }}
+      RIFF_PLUGIN_BACKEND: ${{ matrix.backend }}
+      RIFF_PLUGIN_RENDER: ${{ inputs.render == true && 'true' || 'false' }}
+      RUSTUP_TOOLCHAIN: '1.89.0'
+      MACOSX_DEPLOYMENT_TARGET: '15.0'
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONNOUSERSITE: '1'
+      ERL_FLAGS: '+S 2:2 +SDcpu 1 +SDio 1'
+      RELEASE_DISTRIBUTION: none
+    steps:
+      - name: Check out the exact pull request or dispatched source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Verify pinned upstream dependency
+        run: python3 -B -c 'import sys; sys.path.insert(0, "plugins/riff-chatgpt/scripts"); from riff_dependency import riff_root; print(riff_root())'
+
+      - name: Bind source and target
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          case "$RIFF_PLUGIN_TARGET" in
+            linux-x86_64) test "$(uname -m)" = x86_64 ;;
+            macos-arm64) test "$(uname -m)" = arm64 ;;
+          esac
+          build_directory="$RUNNER_TEMP/riff-chatgpt-build"
+          mkdir -p "$build_directory/logs"
+          echo "RIFF_PLUGIN_BUILD=$build_directory" >> "$GITHUB_ENV"
+          echo "SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)" >> "$GITHUB_ENV"
+
+      - name: Verify provisioned Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          for package in build-essential pkg-config nasm zlib1g-dev python3-venv libncurses-dev libssl-dev; do
+            test "$(dpkg-query -W -f='${db:Status-Status}' "$package" 2>/dev/null || true)" = installed
+          done
+
+      - name: Check macOS build dependencies
+        if: runner.os == 'macOS'
+        run: |
+          command -v pkg-config
+          xcrun --find clang
+          xcrun --find metal
+
+      - name: Identify the self-hosted Ubuntu image
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          case "$ID:$VERSION_ID" in
+            ubuntu:22.04) echo 'ImageOS=ubuntu22' >> "$GITHUB_ENV" ;;
+            ubuntu:24.04) echo 'ImageOS=ubuntu24' >> "$GITHUB_ENV" ;;
+            ubuntu:26.04) echo 'ImageOS=ubuntu26' >> "$GITHUB_ENV" ;;
+            *) echo "Unsupported self-hosted BEAM target: $ID:$VERSION_ID" >&2; exit 1 ;;
+          esac
+      - name: Set up the pinned control toolchain
+        uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          otp-version: '28.0.2'
+          elixir-version: '1.18.4'
+          version-type: strict
+
+      - name: Prepare pinned build tools
+        run: |
+          rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+          python3 -B plugins/riff-chatgpt/packaging/build_toolchain.py --platform "$RIFF_PLUGIN_TARGET" --output "$RIFF_PLUGIN_BUILD/tools"
+
+      - name: Validate the plugin protocol and bridge
+        run: |
+          python3 -B -m unittest discover -s plugins/riff-chatgpt/tests -p 'test_*.py' -v
+          python3 -B -m unittest discover -s plugins/riff-chatgpt/packaging -p 'test_*.py' -v
+          node --test plugins/riff-chatgpt/tests/bridge.test.cjs
+
+      - name: Fetch and verify the standalone Python runtime
+        run: |
+          python3 -B plugins/riff-chatgpt/packaging/build_python.py --platform "$RIFF_PLUGIN_TARGET" --output "$RIFF_PLUGIN_BUILD/python"
+
+      - name: Compile pinned native source and complete LoRA patch set
+        run: |
+          python3 -B plugins/riff-chatgpt/packaging/build_native.py --backend "$RIFF_PLUGIN_BACKEND" --output "$RIFF_PLUGIN_BUILD/native" --jobs 2 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/native.log"
+
+      - name: Build the bundled media runtime
+        run: |
+          python3 -B plugins/riff-chatgpt/packaging/build_media.py --output "$RIFF_PLUGIN_BUILD/media" --jobs 2 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/media.log"
+
+      - name: Build pinned private macOS crypto
+        if: runner.os == 'macOS'
+        run: |
+          elixir riff/desktop/build_openssl.exs --output "$RIFF_PLUGIN_BUILD/openssl" --jobs 2 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/crypto.log"
+
+      - name: Build the bundled score runtime
+        run: |
+          crypto_arguments=()
+          if [ "$RUNNER_OS" = macOS ]; then
+            crypto_arguments=(--crypto-build "$RIFF_PLUGIN_BUILD/openssl")
+          fi
+          python3 -B plugins/riff-chatgpt/packaging/build_control.py --output "$RIFF_PLUGIN_BUILD/control" "${crypto_arguments[@]}" 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/control.log"
+
+      - name: Assemble and validate the self-contained package
+        run: |
+          python3 -B scripts/package_chatgpt_plugin.py \
+            --platform "$RIFF_PLUGIN_TARGET" \
+            --engine-build "$RIFF_NATIVE_BUILD" \
+            --python-build "$RIFF_PLUGIN_BUILD/python" \
+            --media-build "$RIFF_PLUGIN_BUILD/media" \
+            --control-build "$RIFF_PLUGIN_BUILD/control" \
+            --output "$RIFF_PLUGIN_BUILD/package" 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/package.log"
+
+      - name: Exercise the actual packaged MCP process
+        run: |
+          smoke_arguments=(--no-render)
+          if [ "$RIFF_PLUGIN_RENDER" = true ]; then
+            smoke_arguments=(--download-models)
+          fi
+          python3 -B plugins/riff-chatgpt/tests/smoke_runtime.py \
+            --package "$RIFF_PLUGIN_BUILD/package/riff-chatgpt" \
+            --workspace "$RIFF_PLUGIN_BUILD/smoke-workspace" \
+            --output "$RIFF_PLUGIN_BUILD/smoke" "${smoke_arguments[@]}"
+
+      - name: Upload verified platform package and acceptance evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: riff-chatgpt-${{ matrix.platform }}
+          path: |
+            ${{ env.RIFF_PLUGIN_BUILD }}/package/*.tar.gz
+            ${{ env.RIFF_PLUGIN_BUILD }}/package/SHA256SUMS
+            ${{ env.RIFF_PLUGIN_BUILD }}/package/acceptance.json
+            ${{ env.RIFF_PLUGIN_BUILD }}/smoke/
+          if-no-files-found: error
+
+      - name: Retain build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: riff-chatgpt-${{ matrix.platform }}-build-logs
+          path: |
+            ${{ env.RIFF_PLUGIN_BUILD }}/logs/
+            ${{ env.RIFF_PLUGIN_BUILD }}/media/*.log
+            ${{ env.RIFF_PLUGIN_BUILD }}/control/build.log
+            ${{ env.RIFF_PLUGIN_BUILD }}/smoke/
+          if-no-files-found: warn

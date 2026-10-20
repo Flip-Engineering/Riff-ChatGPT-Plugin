@@ -1,3 +1,5 @@
+> Historical pre-extraction evidence. Fresh downstream results are in [downstream validation](downstream-validation.md).
+
 # Riff ChatGPT plugin validation
 
 Checked **October 19, 2026**, for plugin **0.2.0** and Riff **0.6.20** with
@@ -65,7 +67,7 @@ It contains the complete repository patch set, including LoRA support.
 The recipe uses instrumental conditioning, planning off, seed 1234, two CPU
 threads, two midpoint synthesis steps and a one-second target. No style adapter
 is selected for this plugin integration smoke; the separate
-[LoRA validation](lora-validation.md) records actual adapted native inference.
+[LoRA validation](../riff/docs/lora-validation.md) records actual adapted native inference.
 
 | Observation | Result |
 | --- | --- |

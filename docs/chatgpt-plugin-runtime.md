@@ -143,7 +143,7 @@ dependencies, not user prerequisites: C/C++ and make, Git, pkg-config, Python
 Linux also uses zlib development headers; NASM enables media assembly. The
 provided workflow installs or checks them automatically. Source archives and
 CMake/Python binaries are pinned in
-[`desktop/components.json`](../desktop/components.json) and
+[`desktop/components.json`](../riff/desktop/components.json) and
 [`packaging/components.json`](../plugins/riff-chatgpt/packaging/components.json).
 
 For a Linux CPU package, from the repository root:
@@ -194,8 +194,7 @@ score-runtime protocol.
 
 ## Acceptance and CI
 
-The [ChatGPT plugin workflow](../.github/workflows/chatgpt-plugin.yml) runs on
-plugin/runtime-related pull requests and supports manual dispatch. It builds
+The [ChatGPT plugin workflow](../.github/workflows/chatgpt-plugin.yml) is manually dispatched on owned self-hosted Linux and Apple Silicon targets. It checks out the pinned Riff submodule before building. It builds
 Linux CPU and macOS ARM64 Metal packages independently, uploads successful
 archives/checksums/evidence, and retains logs on failure. It does not publish a
 release or install anything into an end user's environment.
