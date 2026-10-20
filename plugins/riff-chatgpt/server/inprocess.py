@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 import tempfile
 from urllib.parse import urlsplit
+from urllib.error import HTTPError
 
 from transport import LoopbackBackend, MAX_JSON, decode_json
 
@@ -82,7 +83,25 @@ class InProcessBackend(LoopbackBackend):
         if parsed.netloc != '127.0.0.1:0':
             raise ValueError('In-process requests cannot address external services.')
         path = parsed.path+('?' + parsed.query if parsed.query else '')
-        return self.response(path, request.get_method(), headers=dict(request.header_items()))
+        manager = self.response(path, request.get_method(), headers=dict(request.header_items()))
+        response = manager.__enter__()
+        class ManagedResponse:
+            """urllib.open returns a response, not a context-manager factory."""
+            closed = False
+            def __getattr__(self, name):
+                return getattr(response, name)
+            def __enter__(self):
+                return self
+            def __exit__(self, *exc):
+                if not self.closed:
+                    self.closed = True
+                    return manager.__exit__(*exc)
+            def close(self):
+                self.__exit__(None, None, None)
+        wrapped = ManagedResponse()
+        if response.code >= 400:
+            raise HTTPError(request.full_url,response.code,response.reason,response.headers,wrapped)
+        return wrapped
 
     def upload_file(self, path, file, content_type, headers):
         with self.response(path, 'POST', Path(file), content_type, headers) as response:

@@ -89,7 +89,7 @@ class ChatRuntimeTests(unittest.TestCase):
         import sys
         repo=Path(__file__).resolve().parents[3]
         code=r'''
-import json,os,sys
+import base64,json,os,sys,wave
 from pathlib import Path
 from unittest.mock import patch
 repo,workspace=map(Path,sys.argv[1:])
@@ -106,6 +106,23 @@ with patch('socket.socket',side_effect=PermissionError(1,'Operation not permitte
         status,state=backend.json_request('/api/state')
         assert status==200 and state['tracks']==[]
         adapter=Adapter(backend,DraftStore(workspace/'draft.sqlite3'),repo/'plugins/riff-chatgpt/dist/studio.html')
+        # Real native file/range handlers and app-only metadata, not mocked bytes.
+        audio=backend.store.outputs/'transport-fixture.wav'
+        with wave.open(str(audio),'wb') as wav:
+            wav.setparams((2,2,48000,0,'NONE','not compressed'))
+            wav.writeframes(b'\x01\x00\x01\x00'*4800)
+        track_id=backend.store.add_track(audio,{'title':'Transport fixture','seed':'1234'}, {})
+        received=bytearray()
+        while True:
+            chunk=adapter.call('riff_audio_chunk',{'track_id':track_id,'offset':len(received),'length':4096})
+            received.extend(base64.b64decode(chunk['_meta']['riff/audio']['base64']))
+            if chunk['structuredContent']['eof']:break
+        assert bytes(received)==audio.read_bytes()
+        try:
+            backend.media_chunk('/api/tracks/'+'f'*32+'/audio',0,16)
+            raise AssertionError('missing recording accepted')
+        except AdapterError as error:
+            assert 'not found' in str(error).lower(),str(error)
         recipe={'title':'No sockets','seed':'1234','max_seconds':1,'steps':2}
         saved=adapter.call('riff_save_draft',{'recipe':recipe,'expected_revision':0})
         assert saved['structuredContent']['body']=={'revision':1,'recipe':recipe}
