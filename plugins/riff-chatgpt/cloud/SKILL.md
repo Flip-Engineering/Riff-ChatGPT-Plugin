@@ -1,6 +1,6 @@
 ---
 name: riff-studio
-description: Compose and revise songs, generate actual YuE2 music and symbolic scores, manage LoRAs and compare/export recordings using Riff inside this user's ChatGPT Chat cloud execution environment. Use for Riff music requests; the native engine and score/media runtime are bundled with this plugin.
+description: Turn ideas into songs with vocals and instruments. Help users write and revise lyrics, shape melodies and arrangements, listen to recordings, and download their music in ChatGPT. Use for composing, revising, generating, playing, and exporting music.
 ---
 
 # Riff in ChatGPT Chat

@@ -1,6 +1,6 @@
 # Riff ChatGPT Plugin
 
-Riff music tooling packaged for ChatGPT, downstream of the native Riff project. This repository is downstream of [Riff](https://github.com/Flip-Engineering/riff); it does not maintain a fork of the generation engine or studio.
+Turn your ideas into songs with vocals and instruments in ChatGPT. Write and revise lyrics, shape melodies and arrangements, listen to your music, and download the results. This repository packages [Riff](https://github.com/Flip-Engineering/riff) for ChatGPT.
 
 ## Source and dependency
 
@@ -20,7 +20,7 @@ Validation needs Python 3.10+, Node.js, Chromium and FFmpeg/FFprobe. Development
 
 ## ChatGPT Chat target
 
-ChatGPT Chat is the required user surface. The cloud distribution bundles the native engine for execution in the user's Chat environment, with no homelab or local-computer backend. Private installation, native CPU generation, exact WAV export and inline player display have passed in Chat. Version 1.1.0 combines the native runtime, music skill and connected original Studio in one app-backed Riff plugin. Actual Chat checks cover library playback with the custom visualizer, seek and looping, shared score editing, and public LoRA installation and selection. The full studio transferred and played a complete 180-second WAV fixture; the separate standalone recording panel uses a labeled preview for larger files. See [the measured results and limits](docs/chatgpt-cloud.md). Writing and reviews use the current ChatGPT session, with no separate Qwen/MLX writer or OpenRouter setup. Studio writing, reviews and WAV export send requests directly to the current ChatGPT conversation from the original button event. The hosted bridge remains an internal component of that plugin; users do not install a separate transport plugin. The original local stdio distribution remains available.
+ChatGPT Chat is the required user surface. The cloud distribution bundles the native engine for execution in the user's Chat environment. Private installation, native CPU generation, exact WAV export and inline player display have passed in Chat. Version 1.1.1 combines the native runtime, music skill and connected original Studio in one app-backed Riff plugin. Actual Chat checks cover library playback with the custom visualizer, seek and looping, shared score editing, and public LoRA installation and selection. The full studio transferred and played a complete 180-second WAV fixture; the separate standalone recording panel uses a labeled preview for larger files. See [the measured results and limits](docs/chatgpt-cloud.md). Writing and reviews use the current ChatGPT session. Studio writing, reviews and WAV export send requests directly to the current ChatGPT conversation from the original button event. The hosted bridge is an internal component of that plugin. The original local stdio distribution remains available.
 
 ## Run and package
 

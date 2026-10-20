@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "dev-47b8744149508191b69a7fe838be8b6d",
-  "version": "1.1.0",
-  "description": "Compose and generate music with Riff inside your ChatGPT Chat cloud environment.",
+  "version": "1.1.1",
+  "description": "Turn your ideas into songs with vocals and instruments. Write and revise lyrics, shape melodies and arrangements, listen to your music, and download the results\u2014all in ChatGPT.",
   "author": {
     "name": "Flip Engineering"
   },
@@ -20,8 +20,8 @@
     "com.openai": {
       "interface": {
         "displayName": "Riff",
-        "shortDescription": "Make music with Riff in Chat",
-        "longDescription": "Compose music, generate YuE2 recordings and scores, and manage LoRAs in your ChatGPT Chat cloud workspace. Includes the native Riff engine and complete Studio. Music models download separately; no local computer or homelab is required.",
+        "shortDescription": "Turn your ideas into songs",
+        "longDescription": "Turn your ideas into songs with vocals and instruments. Write and revise lyrics, shape melodies and arrangements, listen to your music, and download the results\u2014all in ChatGPT.",
         "developerName": "Flip Engineering",
         "category": "Creativity",
         "capabilities": [],
