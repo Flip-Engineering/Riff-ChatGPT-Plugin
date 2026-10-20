@@ -45,6 +45,22 @@
     announce("Request ready. Paste it into ChatGPT to continue.");
   }
   host.on("export-request", ({ prompt }) => prepareChatRequest(prompt));
+  const originalJsonResponse = host.jsonResponse.bind(host);
+  host.jsonResponse = async function (path, method = "GET", body, signal) {
+    // Resolve the current session before reaching legacy native providers.
+    const write = method === "POST" && (path === "/api/composition/revise" ||
+      (path === "/api/inspiration" && body?.idea_engine !== "phrases"));
+    const review = method === "POST" && /^\/api\/tracks\/[a-f0-9]{32}\/reviews$/.test(path);
+    const pendingWords = method === "POST" && ["/api/generations", "/api/plans"].includes(path) &&
+      body?.mode === "surprise" && !body?.lyrics?.trim() && body?.idea_engine !== "phrases";
+    if (write || review || pendingWords) {
+      if (!review) { await saveShared(); await host.shareContext(context()); }
+      prepareChatRequest(`${review ? "Review this Riff recording in our ChatGPT session. Access its audio before making listening claims. Explain if audio access is unavailable." : "Write or revise this Riff draft in our ChatGPT session. Read the shared draft and save the completed recipe using riff_save_draft with its current expected_revision. Set idea_engine to chatgpt. YuE2 handles music and score generation. Keep unrelated creative settings."}\n\n${JSON.stringify({ path, recipe: body, sharedDraftRevision: revision })}\n\nDo not generate audio unless I explicitly requested it.`);
+      if (pendingWords) throw new Error("Write the lyrics in ChatGPT first, then generate the take.");
+      return { status: 200, body: { cancelled: true, preparedForChat: true } };
+    }
+    return originalJsonResponse(path, method, body, signal);
+  };
 
   function remember() {
     try { localStorage.setItem("riff.chatgpt.shared", JSON.stringify({ revision, signature: synced })); } catch {}
@@ -245,15 +261,24 @@
     }
   }
   function writerAvailability() {
-    if (typeof state.engine.writer_ready !== "boolean") return;
-    const selector = document.querySelector("#idea-engine"), option = selector.querySelector('[value="ai"]');
-    option.disabled = !state.engine.writer_ready;
-    option.textContent = state.engine.writer_ready ? "Local AI writer" : "Local AI writer · unavailable";
+    const selector = document.querySelector("#idea-engine");
+    const previous = selector.value;
+    selector.querySelector('[value="ai"]')?.remove();
+    const legacy = selector.querySelector('[value="openrouter"]');
+    if (legacy) { legacy.value = "chatgpt"; legacy.textContent = "ChatGPT session"; }
+    if (!["chatgpt", "phrases"].includes(previous)) selector.value = "chatgpt";
+    document.querySelector("#local-writer-limit").hidden = true;
+    const hint = document.querySelector("#cloud-writer-hint");
+    hint.textContent = "Develop words, sound and scores with this ChatGPT session. YuE2 composes and renders the music.";
+    hint.hidden = selector.value !== "chatgpt";
+    for (const id of ["review-settings-open", "producer-settings"]) document.getElementById(id).hidden = true;
+    const reviewForm = document.querySelector("#review-settings-dialog");
+    reviewForm.hidden = true;
+    if (reviewForm.open) reviewForm.close();
+    document.querySelector("#producer-connection").textContent = "ChatGPT session";
     if (!ideaBusy) {
-      const unavailable = !state.engine.writer_ready && selector.value === "ai";
-      for (const id of ["surprise", "spark", "shuffle-lyrics"]) document.getElementById(id).disabled = unavailable;
-      if (unavailable) document.querySelector("#writer-status").textContent = "Use Write with ChatGPT or choose another idea source.";
-      else if (document.querySelector("#writer-status").textContent.startsWith("Use Write with ChatGPT")) document.querySelector("#writer-status").textContent = "Ready for an idea";
+      for (const id of ["surprise", "spark", "shuffle-lyrics"]) document.getElementById(id).disabled = false;
+      document.querySelector("#writer-status").textContent = selector.value === "chatgpt" ? "Write with this ChatGPT session" : "Ready for an idea";
     }
   }
   document.querySelector("#idea-engine").addEventListener("change", writerAvailability);

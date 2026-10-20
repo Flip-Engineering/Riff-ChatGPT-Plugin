@@ -56,6 +56,9 @@ def patch_app(text: str) -> str:
     if text.count('history.replaceState(null, "", ') != 3:
         raise ValueError("Riff history adapter points changed; review before rebundling.")
     text = text.replace('history.replaceState(null, "", ', 'window.RiffHost.replaceHistory(')
+    text = replace_once(text, '["phrases", "openrouter"].includes(recipe.idea_engine) ? recipe.idea_engine : "ai"',
+                        '["phrases", "chatgpt"].includes(recipe.idea_engine) ? recipe.idea_engine : "chatgpt"', "ChatGPT writer selection")
+    text = replace_once(text, '$("#idea-engine").value !== "openrouter"', '$("#idea-engine").value !== "chatgpt"', "ChatGPT writer hint")
     return text
 
 

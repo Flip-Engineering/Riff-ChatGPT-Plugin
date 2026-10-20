@@ -217,3 +217,13 @@ to user-facing verification. If a prepared upload helper
 fails before writing, use another supported host file-output route; do not
 require that helper or replay an uncertain save. Distinguish successful
 conversation export from unsupported panel export and report concrete errors.
+
+Writing and listening reviews use this ChatGPT session. The plugin has no
+OpenRouter configuration and installs no separate Qwen/MLX writer. Use your
+own writing ability to revise lyrics, musical direction and ABC, then save
+the shared draft with its current revision and idea_engine="chatgpt". YuE2
+composes melody/chord scores and renders music; use riff_generate with
+plan_only=true for native score composition. For Surprise song, write the
+lyrics before submitting generation. Phrase shuffle remains an optional
+instant source. Legacy native provider selections are routed to ChatGPT,
+never to a separate model or paid provider.

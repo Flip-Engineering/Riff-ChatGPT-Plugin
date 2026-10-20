@@ -169,27 +169,23 @@ test('complete original Riff studio through production ManagedRiff and stdio MCP
     await app.locator('[data-close=score-dialog]').click();
     check('Original ABC import, notation editing, MIDI/ABC exports and queued score composition operate through the plugin');
 
-    await app.locator('#review-settings-open').click();
-    await app.locator('#refresh-review-models').click();
-    await app.waitForFunction(() => document.querySelector('#review-model-status').textContent.includes('1 audio model'));
-    await app.locator('#reviews-enabled').check();
-    await app.locator('#review-model').fill('fixture/audio-model');
-    await app.locator('#review-api-key').fill('sk-riff-browser-fixture-only');
-    await app.locator('#review-settings-form button[type=submit]').click();
-    await app.locator('#review-settings-dialog').waitFor({ state: 'hidden' });
+    assert.equal(await app.locator('#review-settings-open').isHidden(), true);
+    const writers = await app.locator('#idea-engine option').evaluateAll(nodes => nodes.map(n => ({value:n.value,text:n.textContent.trim()})));
+    assert.deepEqual(writers.map(x => x.value), ['chatgpt','phrases']);
+    assert.equal(writers[0].text, 'ChatGPT session');
     await app.locator('#producer-panel').evaluate(node => node.open = true);
     await app.locator('#review-focus').fill('Listen for the balance of the melody and accompaniment.');
     await app.locator('#request-review').click();
-    await app.locator('[data-export-review]').first().waitFor({ state: 'attached' });
-    await app.locator('[data-export-review]').first().evaluate(node => node.closest('details').open = true);
-    await app.locator('[data-export-review]').first().click();
-    await page.waitForFunction(() => hostDownloads.some(x => x.uri.endsWith('riff-recommended-take.json')));
-    await app.locator('#review-settings-open').click();
-    await app.locator('#remove-review-key').click();
-    await app.waitForFunction(() => document.querySelector('#toast').textContent === 'Review key removed.');
-    await app.locator('[data-close=review-settings-dialog]').click();
-    assert.equal(await page.evaluate(() => JSON.stringify(hostContexts).includes('sk-riff-browser-fixture-only')), false);
-    check('Optional review settings, model refresh, queued listening notes, recommended-recipe export and key removal preserve the original workflow without exposing credentials to chat');
+    await app.locator('#riff-chat-request').waitFor({ state: 'visible' });
+    assert((await app.locator('#riff-chat-request-text').inputValue()).includes('Review this Riff recording'));
+    await app.locator('#riff-chat-request button').filter({ hasText: 'Close' }).click();
+    await app.locator('#idea-engine').selectOption('chatgpt');
+    await app.locator('#surprise').click();
+    await app.locator('#riff-chat-request').waitFor({ state: 'visible' });
+    assert((await app.locator('#riff-chat-request-text').inputValue()).includes('Write or revise this Riff draft'));
+    await app.locator('#riff-chat-request button').filter({ hasText: 'Close' }).click();
+    assert.equal(await page.evaluate(() => hostTrace.some(x => x.path?.includes('/api/review/models'))), false);
+    check('Writing and reviews route to the current ChatGPT session without OpenRouter settings or a separate local writer');
 
     const worker = await app.evaluate(async () => {
       const canvas = document.createElement('canvas'); canvas.width = 64; canvas.height = 48;

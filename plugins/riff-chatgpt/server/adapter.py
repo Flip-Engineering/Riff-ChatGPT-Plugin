@@ -16,7 +16,7 @@ from routes import AdapterError, ID, HASH, TOKEN, route
 from transport import LoopbackBackend, NoRedirect, UploadStore, MAX_JSON, MAX_CHUNK, MAX_UPLOAD
 
 VERSION = "0.2.0"
-UI_URI = "ui://riff/studio/adapter-v0.2.5.html"
+UI_URI = "ui://riff/studio/adapter-v0.2.6.html"
 MIME = "text/html;profile=mcp-app"
 MAX_BODY = 256 * 1024
 # Binary chunks are one MiB before base64. The wire budget includes metadata.
@@ -165,17 +165,17 @@ TOOLS = [
          schema({"path": PATH_FIELD}, ["path"]), read=True, open_world=True),
     tool("riff_generate", "Queue a real YuE2 render or symbolic plan from an explicit Riff recipe. Read /api/capabilities for its current schema. Submission is not rendering success; inspect the returned job.",
          schema({"recipe": {"type": "object"}, "plan_only": {"type": "boolean", "default": False}}, ["recipe"])),
-    tool("riff_edit", "Edit track metadata or presets, or cancel/reorder a queued job. Use the studio for credentials and permanent recording deletion.",
+    tool("riff_edit", "Edit track metadata or presets, or cancel/reorder a queued job. Use the studio for permanent recording deletion.",
          schema({"path": PATH_FIELD, "method": {"type": "string", "enum": ["POST", "PATCH", "DELETE"]}, "body": {"type": "object"}}, ["path", "method", "body"]), destructive=True),
     tool("riff_get_draft", "Read the shared saved recipe and revision before making a conversational edit.", schema(), read=True),
     tool("riff_save_draft", "Save a recipe only when expected_revision matches. Open studios receive the new draft without overwriting their unsaved edits. Saving does not render music.",
          schema({"recipe": {"type": "object"}, "expected_revision": {"type": "integer", "minimum": 0}}, ["recipe", "expected_revision"])),
     tool("riff_setup", "Check readiness, download the pinned music models into the plugin workspace, or cancel that download. The plugin supplies its own native runtime; setup does not install external applications.",
          schema({"action": {"type": "string", "enum": ["setup", "check", "cancel"]}, "options": {"type": "object"}}, ["action"]), open_world=True),
-    tool("riff_write", "Run Riff's configured writing provider for ideas or score revisions, or cancel it. To compose with ChatGPT directly, edit the shared draft instead. Provider calls may consume the user's configured API usage.",
-         schema({"action": {"type": "string", "enum": ["ideas", "revise_score", "cancel"]}, "recipe": {"type": "object"}}, ["action"]), open_world=True),
-    tool("riff_review", "Request or cancel a listening review using the user's enabled Riff provider. Starting a review transmits the chosen audio to that provider.",
-         schema({"action": {"type": "string", "enum": ["start", "cancel"]}, "track_id": ID_FIELD, "review_id": ID_FIELD, "options": {"type": "object"}}, ["action"]), open_world=True),
+    tool("riff_write", "Prepare writing or score revision in the current ChatGPT session, or cancel. Complete the requested writing yourself and save the shared draft with its current revision. No separate local writer or OpenRouter provider is used.",
+         schema({"action": {"type": "string", "enum": ["ideas", "revise_score", "cancel"]}, "recipe": {"type": "object"}}, ["action"])),
+    tool("riff_review", "Prepare a listening review in the current ChatGPT session, or cancel a legacy review. Access the selected recording and state any audio access limitations. No OpenRouter call is made.",
+         schema({"action": {"type": "string", "enum": ["start", "cancel"]}, "track_id": ID_FIELD, "review_id": ID_FIELD, "options": {"type": "object"}}, ["action"])),
     tool("riff_lora", "Install a pinned Hub LoRA, edit installed adapter metadata, remove an unreferenced adapter, or cancel a download. Read capabilities and LoRA detail first; deletion requires body.confirm=true.",
          schema({"action": {"type": "string", "enum": ["install", "update", "delete", "cancel"]},
                  "id": {"type": "string", "pattern": "^[a-f0-9]{32,64}$"}, "body": {"type": "object"}}, ["action"]), destructive=True, open_world=True),
@@ -214,6 +214,41 @@ class Adapter:
     def close(self):
         self.uploads.close()
 
+    def request(self, path, method="GET", body=None):
+        """Plugin writing belongs to this ChatGPT session, never a second provider."""
+        if path.startswith("/api/review/") and path != "/api/review/key":
+            if method != "GET" or "/models" in path:
+                raise AdapterError("Riff uses the current ChatGPT session for writing and reviews.")
+            if path == "/api/review/settings":
+                return 200, {"enabled": True, "model": "ChatGPT session", "has_key": False}
+        if method == "POST":
+            payload = dict(body or {})
+            writing = path == "/api/composition/revise" or (path == "/api/inspiration" and payload.get("idea_engine") != "phrases")
+            reviewing = re.fullmatch(r"/api/tracks/" + ID + r"/reviews", path)
+            if writing or reviewing:
+                return 200, {"chatgpt_request": {"task": "review" if reviewing else "revise_score" if path.endswith("/revise") else "write", "path": path, "recipe": payload}}
+            if path in ("/api/generations", "/api/plans"):
+                provider = payload.get("idea_engine", "chatgpt")
+                if provider != "phrases":
+                    if payload.get("mode") == "surprise" and not str(payload.get("lyrics", "")).strip():
+                        raise AdapterError("Write the lyrics in the ChatGPT session first, then generate the take. YuE2 composes the music and score.")
+                    payload["idea_engine"] = "phrases"
+                body = payload
+        status, result = self.backend.json_request(path, method, body)
+        if status == 200 and isinstance(result, dict):
+            if path == "/api/state":
+                result = {**result, "review_settings": {"enabled": True, "model": "ChatGPT session", "has_key": False}}
+            elif path == "/api/capabilities":
+                result = json.loads(json.dumps(result))
+                recipe = result.get("recipe_schema", {}).get("properties", {})
+                if "idea_engine" in recipe:
+                    recipe["idea_engine"] = {"type": "string", "enum": ["chatgpt", "phrases"], "default": "chatgpt"}
+                result["writing_provider"] = "current ChatGPT session; edit and save the shared draft"
+                for operation in ("write", "revise_score", "review"):
+                    if operation in result.get("operations", {}):
+                        result["operations"][operation]["description"] = "Prepares a request for this ChatGPT session. Complete it in Chat; writing returns through the shared draft. No external provider is called."
+        return status, result
+
     def engine_tuning(self, payload):
         """Retain the original form without allowing it to choose executables."""
         fixed = {"backend", "binary", "model_root", "model_file", "vae_file"}
@@ -221,7 +256,7 @@ class Adapter:
         if set(payload) - fixed - tuning:
             raise AdapterError("Unknown plugin engine preference.")
         if set(payload) & fixed:
-            status, state = self.backend.json_request("/api/state")
+            status, state = self.request("/api/state")
             current = state.get("engine", {})
             if status != 200 or any(payload[key] != current.get(key) for key in set(payload) & fixed):
                 raise AdapterError("The plugin manages its engine and model locations. Only performance preferences can change.")
@@ -233,7 +268,7 @@ class Adapter:
             raise AdapterError("Unknown Riff tool.")
         validate(args, TOOL_MAP[name]["inputSchema"])
         if name in ("riff_open_studio", "riff_open_project"):
-            status, body = self.backend.json_request("/api/state")
+            status, body = self.request("/api/state")
             return json_result({"state": body, "draft": self.drafts.load(), "adapter_version": VERSION}, status)
         if name == "riff_get_draft":
             return json_result(self.drafts.load())
@@ -266,20 +301,20 @@ class Adapter:
             return json_result(self.uploads.cancel(args["upload_id"]), visible=False)
         if name == "riff_generate":
             path = "/api/plans" if args.get("plan_only", False) else "/api/generations"
-            status, body = self.backend.json_request(path, "POST", object_body(args["recipe"]))
+            status, body = self.request(path, "POST", object_body(args["recipe"]))
         elif name == "riff_read":
-            status, body = self.backend.json_request(route(args["path"], "GET"))
+            status, body = self.request(route(args["path"], "GET"))
         elif name == "riff_setup":
-            status, body = self.backend.json_request("/api/system/" + args["action"], "POST", object_body(args.get("options", {})))
+            status, body = self.request("/api/system/" + args["action"], "POST", object_body(args.get("options", {})))
         elif name == "riff_write":
             path = {"ideas": "/api/inspiration", "revise_score": "/api/composition/revise", "cancel": "/api/inspiration/cancel"}[args["action"]]
-            status, body = self.backend.json_request(path, "POST", object_body(args.get("recipe", {})))
+            status, body = self.request(path, "POST", object_body(args.get("recipe", {})))
         elif name == "riff_review":
             field = "track_id" if args["action"] == "start" else "review_id"
             if field not in args:
                 raise AdapterError(f"{field} is required for this action.")
             path = f"/api/tracks/{args[field]}/reviews" if field == "track_id" else f"/api/reviews/{args[field]}/cancel"
-            status, body = self.backend.json_request(path, "POST", object_body(args.get("options", {})))
+            status, body = self.request(path, "POST", object_body(args.get("options", {})))
         elif name == "riff_lora":
             action, ident = args["action"], args.get("id", "")
             if action == "install":
@@ -290,7 +325,7 @@ class Adapter:
                 path, method = f"/api/loras/{ident}", "PATCH" if action == "update" else "DELETE"
             else:
                 raise AdapterError("This LoRA action requires its exact library or task identifier.")
-            status, body = self.backend.json_request(path, method, object_body(args.get("body", {})))
+            status, body = self.request(path, method, object_body(args.get("body", {})))
         elif name == "riff_ui_request":
             method = args.get("method", "GET")
             path = route(args["path"], method, ui=True)
@@ -299,7 +334,7 @@ class Adapter:
             payload = None if method == "GET" else object_body(args.get("body", {}))
             if path == "/api/system/engine" and method == "POST":
                 payload = self.engine_tuning(payload)
-            status, body = self.backend.json_request(path, method, payload)
+            status, body = self.request(path, method, payload)
             return json_result(body, status, visible=False)
         else:
             method = args["method"]
@@ -308,7 +343,7 @@ class Adapter:
             if method == "PATCH" and re.fullmatch(rf"/api/tracks/{ID}", path):
                 if set(payload) - {"title", "notes", "favorite", "archived"}:
                     raise AdapterError("Only track metadata fields may be edited.")
-            status, body = self.backend.json_request(path, method, payload)
+            status, body = self.request(path, method, payload)
         return json_result(body, status)
 
     def resource(self, uri: str) -> dict:

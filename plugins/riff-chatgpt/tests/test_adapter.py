@@ -44,6 +44,30 @@ class AdapterTests(unittest.TestCase):
         self.drafts = DraftStore(self.root / "draft.sqlite3")
         self.ui = self.root / "studio.html"; self.ui.write_text("<!doctype html><p>TEST FIXTURE</p>")
         self.adapter = Adapter(self.backend, self.drafts, self.ui)
+    def test_chat_session_writing_never_calls_native_qwen_or_openrouter(self):
+        for provider in ("chatgpt", "ai", "openrouter"):
+            result = self.adapter.call("riff_write", {"action": "ideas", "recipe": {"idea_engine": provider, "brief": "A chorus"}})
+            self.assertEqual(result["structuredContent"]["body"]["chatgpt_request"]["task"], "write")
+        self.assertFalse(self.backend.calls)
+
+    def test_chat_session_generation_uses_existing_lyrics_without_a_writer(self):
+        recipe = {"idea_engine": "chatgpt", "mode": "lyrics", "lyrics": "These are my words", "style": "folk"}
+        self.adapter.call("riff_generate", {"recipe": recipe})
+        payload = self.backend.calls[-1][2]
+        self.assertEqual(payload, {**recipe, "idea_engine": "phrases"})
+        self.assertEqual(recipe["idea_engine"], "chatgpt")
+
+    def test_missing_surprise_lyrics_do_not_queue_a_separate_writer(self):
+        for provider in ("chatgpt", "ai", "openrouter"):
+            with self.assertRaisesRegex(AdapterError, "ChatGPT session"):
+                self.adapter.call("riff_generate", {"recipe": {"idea_engine": provider, "mode": "surprise"}})
+        self.assertFalse(self.backend.calls)
+
+    def test_review_prepares_current_chat_without_provider_call(self):
+        result = self.adapter.call("riff_review", {"action": "start", "track_id": "a" * 32})
+        self.assertEqual(result["structuredContent"]["body"]["chatgpt_request"]["task"], "review")
+        self.assertFalse(self.backend.calls)
+
     def test_open_attaches_ui_only_to_render_tool(self):
         tools = {t["name"]: t for t in TOOLS}
         self.assertEqual(tools["riff_open_studio"]["_meta"]["ui"]["resourceUri"], UI_URI)
