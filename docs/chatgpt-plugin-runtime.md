@@ -24,7 +24,7 @@ acceptance checks; successful local tests do not prove host registration.
 | Package | Engine | OS and processor baseline | Validation boundary |
 | --- | --- | --- | --- |
 | `linux-x86_64` | CPU | Ubuntu 24.04 build baseline, glibc 2.39 or newer; the package records and checks AVX2/FMA/BMI2/F16C features actually enabled in its engine | The local package has passed bundled-component startup with an empty language-runtime PATH. Full MCP/native smoke evidence is produced separately. |
-| `macos-arm64` | Metal | Apple Silicon, macOS 15 or newer | The PR workflow builds and tests this package on its own ARM64 runner. A configured workflow is not evidence that its build has passed. |
+| `macos-arm64` | Metal | Apple Silicon, macOS 15 or newer | The manually dispatched workflow builds and tests this package on an owned ARM64 runner. A configured workflow is not evidence that its build has passed. |
 
 The current packages do not contain a CUDA engine or an Intel Mac engine. The
 macOS build uses ad hoc code signatures and checks its complete dylib closure.
@@ -64,8 +64,7 @@ This supports an already trusted managed HTTPS proxy without disabling
 certificate verification or copying private host certificates into a release.
 
 The source tree and its UI hash are recorded from the build's actual files.
-`base_commit` identifies the checked-out Git commit, and
-`source_has_local_changes` discloses an uncommitted build. These fields do not
+`base_commit` and `riff_commit` identify the pinned upstream Git commit; `plugin_commit` identifies this downstream integration. `source_has_local_changes` and `plugin_source_has_local_changes` disclose tracked upstream and downstream working-tree changes respectively. These fields do not
 pretend that a local build is identical to the public main branch. The final
 bundle manifest supplies exact hashes even when there are local changes.
 

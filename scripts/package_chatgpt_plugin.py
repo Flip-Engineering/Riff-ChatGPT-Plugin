@@ -305,6 +305,7 @@ def build(args):
               "base_commit": current, "riff_commit": current,
               "plugin_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=PROJECT, text=True).strip(),
               "source_has_local_changes": changed,
+              "plugin_source_has_local_changes": bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=PROJECT)),
               "cpu_features": proof["cpu_features"] if sys.platform == "linux" else [],
               "system_libraries": libraries, "native": proof,
               "glibc_build_host": platform.libc_ver()[1] if sys.platform == "linux" else None,

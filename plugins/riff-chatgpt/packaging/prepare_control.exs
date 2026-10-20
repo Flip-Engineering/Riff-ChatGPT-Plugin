@@ -1,5 +1,5 @@
 # The same beam relocation and Rust notice rules used by the desktop packager.
-Code.require_file("../../../installer/scripts/rust_notices.exs", __DIR__)
+Code.require_file("installer/scripts/rust_notices.exs", Path.expand(Enum.at(System.argv(), 1)))
 
 defmodule Riff.ChatGPT.PrepareControl do
   def run(runtime, source) do
