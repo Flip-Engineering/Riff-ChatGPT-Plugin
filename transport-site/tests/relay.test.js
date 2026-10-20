@@ -150,3 +150,21 @@ test('the observed R2 list error recovers without creating or resubmitting comma
   assert.deepEqual(await r.storage('list',options),{objects:[],truncated:false});
   assert.equal(calls,2);assert.deepEqual(waits,[1100]);
 });
+
+test('transient R2 internal read errors recover without retrying an ambiguous write',async()=>{
+  for(const method of ['get','list']) {
+    let calls=0;const waits=[],value=method==='get'?{etag:'verified'}:{objects:[]};
+    const r=new Relay({[method]:async()=>{
+      if(++calls===1)throw new Error(method+': We encountered an internal error. Please try again. (10001)');
+      return value;
+    }},tools,Date.now,async ms=>waits.push(ms));
+    assert.deepEqual(await r.storage(method,'key'),value);
+    assert.equal(calls,2);assert.deepEqual(waits,[1100]);
+  }
+  for(const method of ['put','delete']) {
+    let calls=0;const waits=[];
+    const r=new Relay({[method]:async()=>{calls++;throw Object.assign(new Error('internal fault'),{code:10001});}},tools,Date.now,async ms=>waits.push(ms));
+    await assert.rejects(r.storage(method,'key'),/internal fault/);
+    assert.equal(calls,1);assert.deepEqual(waits,[]);
+  }
+});

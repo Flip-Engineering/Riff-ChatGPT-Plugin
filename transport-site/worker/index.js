@@ -23,7 +23,9 @@ class Relay {
         // R2 explicitly rejects same-key write bursts with code 10058. Retry
         // only that storage operation with its original CAS condition. Never
         // replay a native command or mask other storage/authentication faults.
-        if(attempt===2||!(Number(e?.code)===10058||/\b10058\b/.test(String(e?.message))))throw e;
+        const code=Number(e?.code)||Number(String(e?.message).match(/\((10058|10001)\)/)?.[1]);
+        const retryable=code===10058||(code===10001&&['get','list'].includes(method));
+        if(attempt===2||!retryable)throw e;
         await this.storagePause(1100*(attempt+1));
       }
     }
