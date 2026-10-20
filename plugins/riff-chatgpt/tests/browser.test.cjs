@@ -85,13 +85,15 @@ test('complete original Riff studio through production ManagedRiff and stdio MCP
     await app.locator('#riff-write-with-chatgpt').click();
     await app.locator('#riff-writing-request').fill('Write a more hopeful chorus.');
     await app.locator('#riff-chatgpt-writing button[type=submit]').click();
-    await page.waitForFunction(() => hostMessages.length === 1);
-    const chat = await page.evaluate(() => ({ message: hostMessages[0], contexts: hostContexts, trace: hostTrace }));
-    assert(chat.message.content[0].text.includes('hopeful chorus'));
+    await app.locator('#riff-chat-request').waitFor({ state: 'visible' });
+    assert((await app.locator('#riff-chat-request-text').inputValue()).includes('hopeful chorus'));
+    const chat = await page.evaluate(() => ({ messages: hostMessages, contexts: hostContexts, trace: hostTrace }));
+    assert.equal(chat.messages.length, 0);
     assert(chat.contexts.some(x => x.content?.[0]?.type === 'text'));
     assert(chat.contexts.some(x => x.structuredContent?.recipe && !x.content));
     assert(chat.trace.some(x => x.method === 'ui/request-display-mode'));
-    check('Explicit ChatGPT writing, background structured context, draft attachment and fullscreen use host protocol methods');
+    await app.locator('#riff-chat-request button').filter({ hasText: 'Close' }).click();
+    check('ChatGPT writing prepares a visible request without a stalled host message; draft context and fullscreen use host protocol methods');
 
     await app.locator('#system-open').click();
     assert.equal(await app.locator('#setup-engine').textContent(), 'Download music models');

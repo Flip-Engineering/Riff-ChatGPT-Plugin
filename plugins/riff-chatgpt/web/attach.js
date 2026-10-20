@@ -23,7 +23,28 @@
   const announce = text => { status.textContent = text; };
   host.on("error", error => announce(error.message));
   host.on("download", ({ name }) => announce(`Export ready: ${name}`));
-  host.on("export-request", () => announce("Original WAV export requested in ChatGPT."));
+  const handoff = document.createElement("dialog"); handoff.id = "riff-chat-request";
+  handoff.setAttribute("aria-label", "Continue in ChatGPT");
+  const handoffTitle = document.createElement("h2"); handoffTitle.textContent = "Continue in ChatGPT";
+  const handoffHelp = document.createElement("p"); handoffHelp.textContent = "Copy this request, close this window, and paste it into the chat.";
+  const handoffText = document.createElement("textarea"); handoffText.id = "riff-chat-request-text";
+  handoffText.setAttribute("aria-label", "Chat request"); handoffText.readOnly = true; handoffText.rows = 6;
+  const copyRequest = document.createElement("button"); copyRequest.type = "button"; copyRequest.textContent = "Copy request";
+  copyRequest.addEventListener("click", async () => {
+    handoffText.focus(); handoffText.select();
+    try { await navigator.clipboard.writeText(handoffText.value); copyRequest.textContent = "Copied"; }
+    catch { copyRequest.textContent = "Press ⌘C or Ctrl+C to copy"; }
+  });
+  const closeHandoff = document.createElement("button"); closeHandoff.type = "button"; closeHandoff.textContent = "Close";
+  closeHandoff.addEventListener("click", () => handoff.close());
+  handoff.append(handoffTitle, handoffHelp, handoffText, copyRequest, closeHandoff); document.body.append(handoff);
+  function prepareChatRequest(prompt) {
+    handoffText.value = prompt; copyRequest.textContent = "Copy request";
+    if (!handoff.open) handoff.showModal();
+    handoffText.focus(); handoffText.select();
+    announce("Request ready. Paste it into ChatGPT to continue.");
+  }
+  host.on("export-request", ({ prompt }) => prepareChatRequest(prompt));
 
   function remember() {
     try { localStorage.setItem("riff.chatgpt.shared", JSON.stringify({ revision, signature: synced })); } catch {}
@@ -97,7 +118,7 @@
   const label = document.createElement("label"); label.htmlFor = "riff-writing-request"; label.textContent = "What would you like to write or change?";
   const request = document.createElement("textarea"); request.id = label.htmlFor; request.rows = 2;
   request.placeholder = "Write a chorus, refine the sound, or change the melody…"; request.maxLength = 8000;
-  const send = document.createElement("button"); send.type = "submit"; send.className = "secondary-button"; send.textContent = "Send to ChatGPT";
+  const send = document.createElement("button"); send.type = "submit"; send.className = "secondary-button"; send.textContent = "Prepare Chat request";
   writing.append(label, request, send);
   action("Write with ChatGPT", "riff-write-with-chatgpt", () => { writing.hidden = !writing.hidden; if (!writing.hidden) request.focus(); });
   writing.addEventListener("submit", async event => {
@@ -108,8 +129,7 @@
     try {
       await saveShared();
       await host.shareContext(context());
-      await host.message(`In the current Riff draft: ${prompt}\n\nUse the attached Riff context. Read the shared draft and save the completed recipe with riff_save_draft and the current expected_revision so it returns to the studio. Keep unrelated creative settings. Generate audio only if I asked for it.`);
-      announce("Writing request sent to ChatGPT. Shared changes will return to this editor.");
+      prepareChatRequest(`In the current Riff draft: ${prompt}\n\nUse the attached Riff context. Read the shared draft and save the completed recipe with riff_save_draft and the current expected_revision so it returns to the studio. Keep unrelated creative settings. Generate audio only if I asked for it.`);
       writing.hidden = true;
     } catch (error) { announce(error.message); }
     finally { send.disabled = false; }
@@ -117,6 +137,7 @@
   row.append(status); bar.append(row, writing); document.body.prepend(bar);
   const style = document.createElement("style");
   style.textContent = `#riff-chatgpt-host-bar{padding:10px clamp(12px,3vw,40px);border-bottom:1px solid var(--line,#d9d2cf);font:inherit;background:var(--paper,#faf7f1)}
+  #riff-chat-request{width:min(580px,90vw);padding:24px;color:var(--ink,#252321);background:var(--paper,#faf7f1);border:1px solid var(--line,#d9d2cf);border-radius:12px}#riff-chat-request p{margin:12px 0}#riff-chat-request textarea{display:block;width:100%;box-sizing:border-box;margin:16px 0;padding:12px;font:inherit;color:inherit;background:transparent;border:1px solid var(--line,#d9d2cf);resize:vertical}#riff-chat-request button{margin-right:12px}
 +  #riff-chatgpt-host-bar .riff-host-actions{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
 +  #riff-chatgpt-host-bar button{font:inherit}#riff-chatgpt-host-bar [role=status]{flex:1 1 280px;font-size:.8rem;line-height:1.5;opacity:.8}
 +  #riff-chatgpt-writing:not([hidden]){display:grid;grid-template-columns:1fr auto;gap:8px 12px;margin-top:12px;max-width:850px}

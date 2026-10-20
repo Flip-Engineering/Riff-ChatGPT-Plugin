@@ -206,11 +206,14 @@ For reproducibility, preserve the returned recipe, seed, model/LoRA identity,
 job, recording and source receipt alongside exported music when requested.
 
 Actual Chat file uploads currently reject WAV, ABC and MIDI, and a component
-follow-up message may stall even when its API returns. Do not report Library
-publication from a panel status alone. When asked in a normal conversation,
+follow-up message may stall even when its API returns. The studio prepares a
+visible, copyable request for the user to paste into Chat instead of sending
+through that unreliable path. Do not report Library publication from a panel
+status alone. When asked in a normal conversation,
 publish the original workspace files through an available documented host
 file-output tool, reconcile any uncertain earlier save first, and verify the
-saved/downloaded bytes against the original hash. If a prepared upload helper
+recording is available to play or download. Do not add audio checksum chores
+to user-facing verification. If a prepared upload helper
 fails before writing, use another supported host file-output route; do not
 require that helper or replay an uncertain save. Distinguish successful
 conversation export from unsupported panel export and report concrete errors.

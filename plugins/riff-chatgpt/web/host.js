@@ -395,9 +395,9 @@
         // Chat's optional file upload API rejects WAV files. Keep the original
         // recording in its native workspace and request the supported Library
         // export from this conversation instead of relabeling its bytes.
-        await this.message(`Export the complete original WAV for Riff recording ${recording[1]} from the current paired Riff cloud workspace to my ChatGPT Library, with its recipe and recording receipt. Use the bundled Riff skill, verify the original WAV SHA-256, and provide the downloadable audio. Do not generate music or change the draft. If this conversation cannot access that workspace, explain the exact error instead of claiming an export.`);
-        this.emit("export-request", { trackId: recording[1] });
-        return { requestedInChat: true };
+        const prompt = `Export the complete original WAV for Riff recording ${recording[1]} from the current paired Riff cloud workspace to my ChatGPT Library and provide downloadable audio. Do not generate music or change the draft. If this conversation cannot access that workspace, explain the error instead of claiming an export.`;
+        this.emit("export-request", { trackId: recording[1], prompt });
+        return { preparedForChat: true };
       }
       let blob, name = anchor.download || "";
       if (path.startsWith("/api/")) {

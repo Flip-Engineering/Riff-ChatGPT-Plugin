@@ -254,17 +254,17 @@ test('Chat file export does not replay rejected uploads or announce failed downl
   assert.equal(opened, 0); assert.deepEqual(events, []); b.close();
 });
 
-test('WAV export uses the current conversation when the host cannot download app files', async () => {
+test('WAV export prepares a conversation request without sending a stalled host message', async () => {
   const h = mockWindow(() => ({})), b = new RiffBridge(h.win); await b.ready;
   b.hostCapabilities = {};
   const events = []; b.on('export-request', value => events.push(value));
   const result = await b.downloadLink({ getAttribute: () => `/api/tracks/${id}/audio?download=1` });
-  assert.deepEqual(result, { requestedInChat: true });
-  const request = h.sent.at(-1).message;
-  assert.equal(request.method, 'ui/message');
-  assert(request.params.content[0].text.includes(id));
-  assert(request.params.content[0].text.includes('Do not generate music or change the draft.'));
-  assert.deepEqual(events, [{ trackId: id }]);
+  assert.deepEqual(result, { preparedForChat: true });
+  assert.equal(events.length, 1);
+  assert.equal(events[0].trackId, id);
+  assert(events[0].prompt.includes(id));
+  assert(events[0].prompt.includes('Do not generate music or change the draft.'));
+  assert.equal(h.sent.some(x => x.message.method === 'ui/message'), false);
   assert.equal(h.sent.some(x => x.message.method === 'tools/call'), false); b.close();
 });
 
