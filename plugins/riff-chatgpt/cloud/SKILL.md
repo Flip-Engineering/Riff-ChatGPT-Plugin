@@ -84,8 +84,8 @@ Preserve this Riff plugin and its workspace when connecting the companion.
    process identity and private log before resuming the same workspace. Do not
    replace an existing pairing or start a different native workspace silently.
 2. For an unpaired runtime, call its `riff_connect_runtime` and save the returned
-   enrollment JSON to a private file. Run the adjacent `scripts/relay.py` with
-   `--workspace /exact/workspace --enrollment-file /private/enrollment.json`.
+   enrollment JSON to a private file. Prepare the adjacent `scripts/relay.py`
+   launch with `--workspace /exact/workspace --enrollment-file /private/enrollment.json`.
    The helper consumes the one-use enrollment file and stores its own private
    session capability. Never paste worker credentials or media bytes in chat.
 3. Launch the relay from the host's **network-enabled** execution tool. Prefer
