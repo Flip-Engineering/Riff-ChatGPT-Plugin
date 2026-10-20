@@ -27,3 +27,7 @@ The extraction fixed a browser listener fixture that inherited the monorepo work
 The plugin's browser and platform-package workflows use owned self-hosted runners only. The existing homelab runner group now permits this repository and only these reviewed workflow paths on main; existing permissions remain intact. [Infrastructure issue #1](https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/1) records the setup and execution result.
 
 Browser neural inference, admission, Hub and review providers use explicit fixtures. No paid provider was called. This is fresh downstream source and control-runtime validation, not a newly assembled complete user distribution, GPU inference result or actual ChatGPT installation. Historical package and inference receipts retain their pre-extraction dates. Full Linux/Apple Silicon package assembly and production host installation remain separate delivery work.
+
+## Independent self-hosted CI result
+
+[Browser run 39450808327](https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/actions/runs/39450808327) succeeded on downstream source `d49e3b7`. The job ran on owned homelab runner `atari-homelab-baton2-native` in group `baton2-native-homelab`. All 14 browser acceptance scenarios passed. Later changes only record evidence and documentation.
