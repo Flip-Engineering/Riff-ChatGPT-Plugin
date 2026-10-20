@@ -32,6 +32,9 @@ concurrency:
 
 jobs:
   package:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     name: ${{ matrix.platform }} / ${{ matrix.backend }}
     strategy:
       fail-fast: false

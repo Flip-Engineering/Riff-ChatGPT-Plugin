@@ -8,6 +8,9 @@ permissions:
   contents: read
 jobs:
   control:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, Linux, X64, baton2-native-linux-x64]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -43,6 +46,9 @@ jobs:
       - run: elixir tests/native_cache_test.exs
       - run: python3 -m unittest discover -s installer/test -p '*_test.py' -v
   application:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, Linux, X64, baton2-native-linux-x64]
     strategy:
       matrix:
@@ -61,6 +67,9 @@ jobs:
       - run: python scripts/package_release.py
       - run: python scripts/check_install.py "dist/riff-v$(cat VERSION).tar.gz"
   browser:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, Linux, X64, baton2-native-linux-x64]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -86,6 +95,9 @@ jobs:
           name: browser-results
           path: test-results/
   native:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     strategy:
       fail-fast: false
       matrix:
@@ -146,6 +158,9 @@ jobs:
             data/native-lora-check/numerical.log
           if-no-files-found: ignore
   cuda:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     # Requires a self-hosted Linux NVIDIA container runner carrying the riff-cuda label.
     runs-on: [self-hosted, Linux, X64, riff-cuda]
     container: nvidia/cuda:12.8.1-devel-ubuntu24.04@sha256:520292dbb4f755fd360766059e62956e9379485d9e073bbd2f6e3c20c270ed66

@@ -23,6 +23,9 @@ concurrency:
 
 jobs:
   browser:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     name: ChatGPT browser acceptance
     runs-on: [self-hosted, Linux, X64, baton2-native-linux-x64]
     timeout-minutes: 15
