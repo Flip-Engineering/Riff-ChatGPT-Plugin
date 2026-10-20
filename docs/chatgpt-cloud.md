@@ -1,8 +1,45 @@
 # Riff in ChatGPT Work Cloud
 
-The cloud plugin runs Riff in each user's ChatGPT Work cloud computer. It has
+The candidate cloud package is designed to run Riff in each user's ChatGPT Work cloud computer. It has
 no external MCP endpoint and never uses the developer's homelab or the user's
 local computer as its production backend. The homelab remains a build/CI host.
+Installation and native generation in ChatGPT Work have not yet passed end-to-end validation.
+
+## OpenAI documentation contract
+
+The implementation follows these documented distinctions:
+
+- [Plugin architecture](https://developers.openai.com/plugins/concepts/plugins)
+  supports skills containing instructions and supporting scripts, references,
+  templates or assets. A skills-only plugin can use tools already available to
+  the model; an MCP server is a separate integration.
+- [Build skills](https://developers.openai.com/plugins/build/skills) permits
+  deterministic helper scripts under `scripts/`. This is the basis for the
+  cloud command adapter, rather than a bundled stdio MCP connection.
+- [Package your plugin](https://developers.openai.com/plugins/build/plugins)
+  defines root `plugin.json`, `skills/`, relative asset paths and
+  `extensions.com.openai`. Installing a plugin on the web does not deploy
+  lifecycle-hook scripts.
+- [Desktop-only plugins](https://developers.openai.com/plugins/deploy/desktop-only)
+  identifies local stdio MCP servers as a desktop execution path. A packaged
+  local server must not be described as an automatically hosted cloud MCP service.
+- [Add UI](https://developers.openai.com/plugins/build/chatgpt-ui) requires an
+  MCP server to associate a tool with a UI resource, and an MCP Apps host bridge
+  for component interaction. Including studio source in a skill archive does
+  not register that studio as a ChatGPT UI component.
+- [Connect and test](https://developers.openai.com/plugins/deploy/connect-chatgpt)
+  requires testing the installed package in a new conversation with
+  representative requests and verifying bundled-resource resolution.
+
+These pages do not guarantee native Riff execution, a fixed cloud CPU/memory
+allocation, background-worker persistence, or a route from a skills-only
+command worker to an MCP App. Those remain explicit compatibility questions;
+host probes are implementation evidence, not substitutes for platform documentation.
+
+The documented [shared archive checks](https://developers.openai.com/plugins/deploy/submission-errors#archive-errors)
+limit the ZIP to 100 MB compressed, 512 MiB extracted, 100 MiB per member and
+5,000 entries. The native runtime is a compressed skill asset; validation must
+check both the outer plugin archive and the extracted runtime independently.
 
 The cloud distribution is a portable plugin containing a skill, a small Python
 launcher and a checksum-verified native runtime archive. ChatGPT Work supplies
