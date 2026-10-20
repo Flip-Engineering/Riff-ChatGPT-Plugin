@@ -1,0 +1,226 @@
+name: Homelab Linux validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact commit to validate from this repository
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  linux-validation:
+    name: Linux source, browser, and CPU checks
+    runs-on: [self-hosted, Linux, X64, baton2-native-linux-x64]
+    steps:
+      - name: Check out the requested commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Record runner and source identity
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          RUNNER_NAME: ${{ runner.name }}
+          RUNNER_OS: ${{ runner.os }}
+          RUNNER_ARCH: ${{ runner.arch }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          mkdir -p "$RUNNER_TEMP/riff-homelab-validation"
+          python3 - <<'PY' | tee "$RUNNER_TEMP/riff-homelab-validation/runner.json"
+          import json, os, platform, subprocess
+          print(json.dumps({
+              "source_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+              "runner_os": os.environ.get("RUNNER_OS", platform.system()),
+              "runner_architecture": os.environ.get("RUNNER_ARCH", platform.machine()),
+              "runner_name": os.environ.get("RUNNER_NAME"),
+              "runner_labels": ["self-hosted", "Linux", "X64", "baton2-native-linux-x64"],
+              "kernel": platform.release(),
+              "scope": ["python-3.9-and-3.14", "javascript", "browser", "linux-cpu-native", "score", "acoustic", "source-release", "linux-plugin-package"],
+          }, sort_keys=True, indent=2))
+          PY
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.14'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Identify the self-hosted Ubuntu image
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          case "$ID:$VERSION_ID" in
+            ubuntu:22.04) echo 'ImageOS=ubuntu22' >> "$GITHUB_ENV" ;;
+            ubuntu:24.04) echo 'ImageOS=ubuntu24' >> "$GITHUB_ENV" ;;
+            ubuntu:26.04) echo 'ImageOS=ubuntu26' >> "$GITHUB_ENV" ;;
+            *) echo "Unsupported BEAM binary target: $ID:$VERSION_ID" >&2; exit 1 ;;
+          esac
+
+      - name: Set up the pinned control toolchain
+        uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124
+        with:
+          otp-version: '28.0.2'
+          elixir-version: '1.18.4'
+          version-type: strict
+
+      - name: Check Riff runtime resource accounting
+        run: elixir runtime/test/resources_test.exs
+
+      - name: Verify provisioned Linux build dependencies
+        run: |
+          set -euo pipefail
+          for package in ffmpeg build-essential pkg-config nasm zlib1g-dev python3-venv libncurses-dev libssl-dev; do
+            state="$(dpkg-query -W -f='${db:Status-Status}' "$package" 2>/dev/null || true)"
+            if [ "$state" != installed ]; then
+              echo "Provision the homelab build dependency: $package" >&2
+              exit 1
+            fi
+          done
+
+      - name: Run the studio check and Python tests
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/riff-homelab-validation"
+          python3 studio.py --check 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/studio-check.log"
+          python3 -B -m unittest discover -s tests -v 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/python-tests.log"
+
+      - name: Run plugin protocol and bridge tests
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s plugins/riff-chatgpt/tests -p 'test_*.py' -v 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/plugin-protocol-tests.log"
+          python3 -B -m unittest discover -s plugins/riff-chatgpt/packaging -p 'test_*.py' -v 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/plugin-packaging-tests.log"
+          node --test plugins/riff-chatgpt/tests/bridge.test.cjs 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/plugin-bridge-tests.log"
+
+      - name: Run browser tests
+        run: |
+          set -euo pipefail
+          npm ci 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/npm-ci.log"
+          npx playwright install chromium 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/playwright-install.log"
+          npm run test:all-browser 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/browser-tests.log"
+          npm run test:chatgpt-browser 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/plugin-browser-tests.log"
+
+      - name: Build and test the Linux CPU engine
+        run: |
+          set -euo pipefail
+          elixir scripts/build_cached_native.exs --backend cpu --build-only 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/native-cpu-build.log"
+          python3 scripts/check_native_solver.py 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/native-solver-tests.log"
+          python3 scripts/check_native_lora.py --output "$RUNNER_TEMP/riff-homelab-validation/native-lora" 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/native-lora-tests.log"
+          elixir scripts/check_native_score_replay.exs --download-tokenizer --output "$RUNNER_TEMP/riff-homelab-validation/native-score-check" 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/native-score-replay-tests.log"
+          elixir scripts/check_native_acoustic.exs --tokenizer "$RUNNER_TEMP/riff-homelab-validation/native-score-check/yue2-qwen.tiktoken" 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/native-acoustic-tests.log"
+
+      - name: Validate Python 3.9 compatibility
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.9'
+
+      - name: Run Python 3.9 application checks
+        run: |
+          set -euo pipefail
+          python3 studio.py --check 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/studio-check-python39.log"
+          python3 -B -m unittest discover -s tests -v 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/python-tests-python39.log"
+
+      - name: Restore Python 3.14 for release packaging
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.14'
+
+      - name: Build and install-check the source release
+        run: |
+          set -euo pipefail
+          python3 scripts/package_release.py 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/source-package.log"
+          python3 scripts/check_install.py "dist/riff-v$(cat VERSION).tar.gz" 2>&1 | tee "$RUNNER_TEMP/riff-homelab-validation/source-install-check.log"
+
+      - name: Set up the plugin build environment
+        env:
+          RUNNER_TEMP: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          build_directory="$RUNNER_TEMP/riff-homelab-validation/plugin-build"
+          mkdir -p "$build_directory/logs"
+          {
+            echo "RIFF_PLUGIN_BUILD=$build_directory"
+            echo "RIFF_PLUGIN_TARGET=linux-x86_64"
+            echo "RIFF_PLUGIN_BACKEND=cpu"
+            echo "SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)"
+            echo "RIFF_PLUGIN_RENDER=false"
+            echo "RUSTUP_TOOLCHAIN=1.89.0"
+            echo "RUSTUP_HOME=$RUNNER_TEMP/riff-homelab-validation/rustup-home"
+            echo "CARGO_HOME=$RUNNER_TEMP/riff-homelab-validation/cargo-home"
+            echo "PYTHONDONTWRITEBYTECODE=1"
+            echo "PYTHONNOUSERSITE=1"
+            echo "ERL_FLAGS=+S 2:2 +SDcpu 1 +SDio 1"
+            echo "RELEASE_DISTRIBUTION=none"
+          } >> "$GITHUB_ENV"
+
+      - name: Locate the installed rustup executable
+        run: |
+          if [ -x "$HOME/.cargo/bin/rustup" ]; then
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Set up the pinned plugin Rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: '1.89.0'
+
+      - name: Prepare pinned plugin build tools
+        run: |
+          set -euo pipefail
+          python3 -B plugins/riff-chatgpt/packaging/build_toolchain.py --platform "$RIFF_PLUGIN_TARGET" --output "$RIFF_PLUGIN_BUILD/tools"
+
+      - name: Build the Linux ChatGPT plugin package
+        run: |
+          set -euo pipefail
+          jobs="$(nproc)"
+          python3 -B plugins/riff-chatgpt/packaging/build_python.py --platform "$RIFF_PLUGIN_TARGET" --output "$RIFF_PLUGIN_BUILD/python"
+          python3 -B plugins/riff-chatgpt/packaging/build_native.py --backend "$RIFF_PLUGIN_BACKEND" --output "$RIFF_PLUGIN_BUILD/native" --jobs "$jobs" 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/native.log"
+          python3 -B plugins/riff-chatgpt/packaging/build_media.py --output "$RIFF_PLUGIN_BUILD/media" --jobs "$jobs" 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/media.log"
+          python3 -B plugins/riff-chatgpt/packaging/build_control.py --output "$RIFF_PLUGIN_BUILD/control" 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/control.log"
+          python3 -B scripts/package_chatgpt_plugin.py \
+            --platform "$RIFF_PLUGIN_TARGET" \
+            --engine-build "$RIFF_NATIVE_BUILD" \
+            --python-build "$RIFF_PLUGIN_BUILD/python" \
+            --media-build "$RIFF_PLUGIN_BUILD/media" \
+            --control-build "$RIFF_PLUGIN_BUILD/control" \
+            --output "$RIFF_PLUGIN_BUILD/package" 2>&1 | tee "$RIFF_PLUGIN_BUILD/logs/package.log"
+
+      - name: Exercise the assembled Linux plugin package
+        run: |
+          set -euo pipefail
+          python3 -B plugins/riff-chatgpt/tests/smoke_runtime.py \
+            --package "$RIFF_PLUGIN_BUILD/package/riff-chatgpt" \
+            --workspace "$RIFF_PLUGIN_BUILD/smoke-workspace" \
+            --output "$RIFF_PLUGIN_BUILD/smoke" --no-render
+
+      - name: Upload validation logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: riff-homelab-linux-${{ inputs.source_sha }}
+          path: |
+            ${{ runner.temp }}/riff-homelab-validation/runner.json
+            ${{ runner.temp }}/riff-homelab-validation/*.log
+            ${{ runner.temp }}/riff-homelab-validation/native-lora/*.json
+            ${{ runner.temp }}/riff-homelab-validation/native-score-check/*.json
+            dist/riff-v*.tar.gz
+            ${{ runner.temp }}/riff-homelab-validation/plugin-build/package/*.tar.gz
+            ${{ runner.temp }}/riff-homelab-validation/plugin-build/package/SHA256SUMS
+            ${{ runner.temp }}/riff-homelab-validation/plugin-build/package/acceptance.json
+            ${{ runner.temp }}/riff-homelab-validation/plugin-build/logs/*.log
+            ${{ runner.temp }}/riff-homelab-validation/plugin-build/smoke/*.json
+            test-results/
+            native-cache-receipts/
+          if-no-files-found: warn
