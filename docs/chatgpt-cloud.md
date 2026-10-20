@@ -1,6 +1,6 @@
 # Riff in ChatGPT Chat
 
-The candidate cloud package is designed to run Riff in each user's ChatGPT Chat cloud execution environment. It has
+The cloud package runs Riff in each user's ChatGPT Chat cloud execution environment. It has
 no external MCP endpoint and never uses the developer's homelab or the user's
 local computer as its production backend. The homelab remains a build/CI host.
 Private installation and real native generation have passed in ChatGPT Chat.
@@ -10,6 +10,11 @@ the reusable recording player. Actual Chat verified that the host reaps detached
 workers between execution calls: 0.3.2 restarts safely and preserves drafts, while
 setup/render/polling must share a retained execution session. A connected full
 studio has not passed Chat acceptance.
+
+Version 0.3.3 is privately installed on the existing Riff plugin identity. Its
+installed native export command and the actual Chat inline player display passed
+acceptance. The renderer and audio controls also passed sandboxed Chromium tests;
+direct playback automation inside Chat's own iframe remains unverified.
 
 ## OpenAI documentation contract
 
@@ -144,6 +149,41 @@ Chat's separate cloud browser received `ERR_CONNECTION_REFUSED` at its loopback
 address. A direct studio response also forbids framing. An external UI transport
 would have to connect the host panel to each user's cloud worker; the developer's
 homelab is not a runtime backend.
+
+## Installed 0.3.3 acceptance, October 20
+
+The final cloud archive was packaged from `d14782e`, with SHA-256
+`a50b791846ab728e1be3a171fda3e81e7a588c2a6254c9c80d96e36558188063`
+and size 56,998,097 bytes. Browser-side byte count and SHA-256 matched before
+upload. Chat confirmed the existing plugin had updated to 0.3.3.
+
+A fresh Chat then reused native recording `a006eb3c51174f42bde14dcac379a4c8`
+from the successful 0.3.2 render. It checked that no job was running, left an
+unrelated process with a reused PID untouched, started the new package in a
+retained session, and stopped it gracefully after export. No new render or draft
+mutation was performed in this final export test.
+
+| Check | Evidence |
+| --- | --- |
+| Real native generation | 0.3.2 completed one YuE2 job with native exit 0, 47,936 stereo PCM16 frames at 48 kHz, seed 1234 and two midpoint steps. Models passed their six pinned size/SHA checks. |
+| Installed export command | 0.3.3 `scripts/player.py` exited 0 through native `riff_audio_chunk`; no direct builder-import workaround or runtime patch. |
+| Exact audio | Original and embedded WAV were 191,788 bytes, SHA-256 `3b946eccd47220e3fcdecc84bd0e5ee2c58a63fb8de3a72f895b3a3db039c4f3`. |
+| Host format | 306,139-byte fragment; installed Visualize `render.py` exited 0; no document wrappers. Original artwork and motion function were present verbatim, and decompressed motion data matched the native response. |
+| Chat display | The final response mounted an iframe titled “Riff 033 Native Player”. |
+| Browser controls | Two Chromium tests passed in an opaque sandbox iframe with an offline CSP: trusted keyboard playback, seek, loop, changing canvas frames, exact audio hashes, title injection, MP3 fragment budget, wrong-file rejection and full-WAV selection. No HTTP requests or relaxed autoplay policy. |
+| Network-enabled download | The host's approved network-enabled `curl` fetched one 466-byte pinned sidecar, `yue2-generation-config.json`, SHA-256 `203830cebde6e3644eb291925362990d198e66c3b6006cd11f1aaa21904bcc61`. The restricted executor's native HTTPS download had failed; supported host execution can provide the pinned files. |
+
+Source regression validation passed 96 Python tests, five packaging tests and 26
+bridge tests. Linux archive acceptance exercised native runtime components and
+the installed player CLI with an explicit PCM transport fixture; that smoke is
+not a neural generation test. The real generation above occurred in Chat.
+
+Direct playback inside the mounted Chat iframe was not automated: its cloud
+browser could not open the local preview, and its local Playwright executable
+was absent. The separate sandboxed browser checks establish the player controls,
+while the observed Chat iframe establishes display. The full connected studio
+remains tracked in issue #2. The short native render establishes functionality;
+no listening or musical-quality acceptance is claimed.
 
 ## Historical Work probe: not Chat acceptance
 

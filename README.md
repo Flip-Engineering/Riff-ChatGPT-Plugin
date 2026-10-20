@@ -16,11 +16,11 @@ npx playwright install chromium
 ./scripts/validate.sh
 ```
 
-Validation needs Python 3.10+, Node.js, Chromium and FFmpeg/FFprobe. Run it on the homelab with `TMPDIR` and the checkout on NVMe. No hosted compute is required. Python runtime packaging remains separately pinned for user distributions.
+Validation needs Python 3.10+, Node.js, Chromium and FFmpeg/FFprobe. Development validation runs on the homelab with `TMPDIR` and the checkout on NVMe. Python runtime packaging remains separately pinned for user distributions.
 
 ## ChatGPT Chat target
 
-ChatGPT Chat is the required user surface. The candidate cloud distribution bundles the native engine for execution in the user's Chat environment, with no homelab or local-computer backend. Installation and native generation must be validated in Chat itself; Work-only results do not satisfy this target. See [cloud packaging and qualification](docs/chatgpt-cloud.md). It is a skill-driven cloud runtime; interactive MCP App mounting is a separate host integration and must be verified explicitly. The original local stdio distribution remains available.
+ChatGPT Chat is the required user surface. The cloud distribution bundles the native engine for execution in the user's Chat environment, with no homelab or local-computer backend. Private installation, native CPU generation, exact WAV export and inline player display have passed in Chat. Version 0.3.3 displays recordings with the original custom visualizer; larger recordings use a labeled preview and receipt-verified local full-WAV playback. See [the measured results and limits](docs/chatgpt-cloud.md). The complete studio's live library, LoRA and score controls still need a connected MCP Apps transport ([issue #2](https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/2)). The original local stdio distribution remains available.
 
 ## Run and package
 
@@ -32,4 +32,4 @@ Update Riff by checking out a reviewed upstream revision inside `riff/`, updatin
 
 ## Delivery status
 
-Repository extraction and source integration do not constitute a published ChatGPT installation. [Historical validation](docs/chatgpt-plugin-validation.md) records pre-extraction evidence; fresh downstream results are tracked separately in [extraction validation](docs/downstream-validation.md). Platform package builds, real model inference, Apple Silicon behavior and actual ChatGPT host installation must each be reported independently. Music weights are downloaded separately under their own terms.
+The cloud package is privately installed and tested; it has not been published to the public directory. [Historical validation](docs/chatgpt-plugin-validation.md) records pre-extraction evidence; downstream results are tracked in [extraction validation](docs/downstream-validation.md) and [Chat acceptance](docs/chatgpt-cloud.md). Platform package builds, real model inference, Apple Silicon behavior and actual ChatGPT host installation are reported independently. Music weights are downloaded separately under their own terms.

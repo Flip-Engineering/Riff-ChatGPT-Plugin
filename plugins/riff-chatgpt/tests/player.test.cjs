@@ -1,12 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { mkdtempSync, rmSync } = require('node:fs');
+const { mkdtempSync, readFileSync, writeFileSync, rmSync } = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { chromium } = require(process.env.RIFF_PLAYWRIGHT_MODULE || 'playwright');
 
-for (const preview of [false, true]) test(`exported ${preview ? 'budgeted preview and full-file' : 'exact WAV'} player works without a server`, { timeout: 60000 }, async () => {
+for (const preview of [false, true]) test(`sandboxed ${preview ? 'budgeted preview and full-file' : 'exact WAV'} player works without a server`, { timeout: 60000 }, async () => {
   const root = path.resolve(__dirname, '../../..');
   const temporary = mkdtempSync(path.join(os.tmpdir(), 'riff-player-test-'));
   let browser;
@@ -42,12 +42,19 @@ FragmentParser().feed((out/'player.html').read_text())
 `, root, temporary, String(preview)], { stdio: 'pipe' });
     browser = await chromium.launch({ headless: true,
       executablePath: process.env.RIFF_BROWSER_EXECUTABLE,
-      args: ['--autoplay-policy=no-user-gesture-required', '--enable-unsafe-swiftshader'] });
-    const page = await browser.newPage({ viewport: { width: 900, height: 850 } });
+      args: ['--enable-unsafe-swiftshader'] });
+    let page = await browser.newPage({ viewport: { width: 900, height: 850 } });
     const errors = [], requests = [];
     page.on('pageerror', e => errors.push(e.message));
     page.on('request', r => requests.push(r.url()));
-    await page.goto('file://' + path.join(temporary, 'player.html'));
+    // Exercise an opaque iframe and offline CSP, including user-file input and
+    // a trusted keyboard play action, instead of relying on relaxed autoplay.
+    const policy = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; media-src blob: data:; connect-src blob: data:; img-src data:; worker-src blob:">`;
+    const source = (policy + readFileSync(path.join(temporary, 'player.html'), 'utf8')).replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
+    writeFileSync(path.join(temporary, 'host.html'), `<!doctype html><iframe name="riff-player" sandbox="allow-scripts allow-forms allow-downloads" allow="autoplay" style="width:880px;height:800px;border:0" srcdoc="${source}"></iframe>`);
+    await page.goto('file://' + path.join(temporary, 'host.html'));
+    await page.frameLocator('iframe').locator('audio').waitFor({ state: 'attached' });
+    page = await (await page.locator('iframe').elementHandle()).contentFrame();
     await page.waitForFunction(() => document.querySelector('audio').readyState >= 2);
     assert.equal(await page.locator('h1').innerText(), '__DATA__ <script>window.injected=true</script>');
     assert.equal(await page.evaluate(() => window.injected), undefined);
@@ -62,7 +69,7 @@ FragmentParser().feed((out/'player.html').read_text())
     }
     assert.equal(await page.locator('audio').evaluate(e => e.duration), 2);
     const before = await page.locator('canvas').evaluate(e => e.toDataURL());
-    await page.locator('audio').evaluate(e => e.play());
+    await page.locator('audio').press('Space');
     await page.waitForFunction(() => document.querySelector('audio').currentTime > .35);
     const after = await page.locator('canvas').evaluate(e => e.toDataURL());
     assert.notEqual(before, after, 'Artwork must change with playback');
