@@ -268,6 +268,18 @@ test('WAV export uses the current conversation when the host cannot download app
   assert.equal(h.sent.some(x => x.message.method === 'tools/call'), false); b.close();
 });
 
+test('Chat follow-up extension sends once without duplicating the shared message request', async () => {
+  const h = mockWindow(), b = new RiffBridge(h.win); await b.ready;
+  const calls=[];
+  h.win.openai={sendFollowUpMessage:async input=>{calls.push(input);}};
+  await b.message('Export the original WAV');
+  assert.deepEqual(calls,[{prompt:'Export the original WAV'}]);
+  assert.equal(h.sent.some(x=>x.message.method==='ui/message'),false);
+  h.win.openai.sendFollowUpMessage=async()=>{throw new Error('Follow-up rejected');};
+  await assert.rejects(b.message('Try an export'),/Follow-up rejected/);
+  assert.equal(h.sent.some(x=>x.message.method==='ui/message'),false); b.close();
+});
+
 test('background context omits transcript content and explicit context attaches it', async () => {
   const h = mockWindow(() => ({})); const b = new RiffBridge(h.win);
   const context = { recipe: { style: 'folk' }, sharedDraftRevision: 3 };

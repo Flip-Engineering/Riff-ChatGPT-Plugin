@@ -471,6 +471,12 @@
     async message(text) {
       await this.ready;
       if (typeof text !== "string" || text.length > 65536) throw new Error("The message is too large.");
+      // Chat exposes its documented follow-up extension alongside MCP Apps.
+      // Its shared ui/message request remained pending in actual host testing.
+      // Pick one supported path before sending; never retry across both APIs.
+      if (typeof this.win.openai?.sendFollowUpMessage === "function") {
+        return this.win.openai.sendFollowUpMessage({ prompt: text });
+      }
       const result = await this.request("ui/message", { role: "user", content: [{ type: "text", text }] });
       if (result?.isError) throw new Error("ChatGPT could not receive this writing request.");
       return result;

@@ -1,7 +1,7 @@
 {
-  "studio_sha256": "848cd0bc562fb3ee25d44100fbf9032731ccfcefd0cc1c6fc136716bb7bc637f",
+  "studio_sha256": "0171e13eea2784b8bbc28299edd4d795f5d2224e873739f3d1c39a50daa84ad7",
   "tools": 18,
-  "resource_uri": "ui://riff/studio/adapter-v0.2.3.html",
+  "resource_uri": "ui://riff/studio/adapter-v0.2.4.html",
   "source": "plugins/riff-chatgpt/dist/studio.html",
   "native_runtime": "user ChatGPT Chat cloud workspace"
 }
