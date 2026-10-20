@@ -36,6 +36,16 @@ def write_json(path, value):
     temporary.replace(path)
 
 
+def secret_service_session_available():
+    """A command alone is insufficient on headless validation/build hosts."""
+    if not shutil.which("secret-tool"):
+        return False
+    if os.environ.get("DBUS_SESSION_BUS_ADDRESS") or os.environ.get("DISPLAY"):
+        return True
+    directory = os.environ.get("XDG_RUNTIME_DIR")
+    return bool(directory and (Path(directory) / "bus").is_socket())
+
+
 class SessionCredentials:
     """Process-local key shared with writing and review workers through stdin."""
     storage_name = "Session only — cleared when Riff closes"
@@ -307,7 +317,7 @@ class ManagedRiff:
                     write_json(config_path, settings)
                 keychain = importlib.import_module("keychain")
                 self._original_keychain = keychain.Keychain
-                if sys.platform != "darwin" and not shutil.which("secret-tool"):
+                if sys.platform != "darwin" and not secret_service_session_available():
                     self.credentials = SessionCredentials()
                     keychain.Keychain = lambda *args, **kwargs: self.credentials
                 else:
