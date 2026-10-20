@@ -2,7 +2,8 @@
 """Package verified Riff native components for execution in ChatGPT Chat.
 
 The cloud host supplies Python 3.12+. Native inference, ERTS/control and media
-executables are carried in the archive; no MCP endpoint or homelab is used.
+executables are carried in the archive. Sites transports UI commands; native
+execution remains in the user's cloud workspace.
 """
 import argparse
 import gzip
@@ -45,10 +46,15 @@ def package(source,destination):
         folder=Path(folder)
         bundle=folder/'riff-chatgpt'
         shutil.copytree(source,bundle,ignore=lambda directory,names: [n for n in names if (Path(directory)/n)==source/'runtime/python'])
+        # Reuse the verified native executables while packaging the current
+        # downstream Python adapter and exact studio, including its UI policy.
+        for path in (PLUGIN/'server').glob('*.py'):
+            shutil.copy2(path,bundle/'server'/path.name)
+        shutil.copy2(PLUGIN/'dist/studio.html',bundle/'dist/studio.html')
         # Desktop connection metadata never enters the cloud package.
         (bundle/'mcp.json').unlink(missing_ok=True)
         config['execution']='chatgpt-cloud'
-        config['plugin_version']='0.4.0'
+        config['plugin_version']='0.4.1'
         config['host_python_minimum']='3.12'
         (bundle/'runtime/runtime.json').write_text(json.dumps(config,indent=2)+'\n')
         records=[{'path':p.relative_to(bundle).as_posix(),'bytes':p.stat().st_size,'sha256':sha(p),'executable':os.access(p,os.X_OK)}
@@ -58,7 +64,7 @@ def package(source,destination):
         with tarfile.open(archive,'w:gz') as tar:
             tar.add(bundle,arcname='riff-chatgpt')
         metadata=json.loads((PLUGIN/'plugin.json').read_text())
-        metadata['version']='0.4.0'
+        metadata['version']='0.4.1'
         metadata['description']='Compose and generate music with Riff inside your ChatGPT Chat cloud environment.'
         metadata['extensions']['com.openai']['apps']='./.app.json'
         interface=metadata['extensions']['com.openai']['interface']

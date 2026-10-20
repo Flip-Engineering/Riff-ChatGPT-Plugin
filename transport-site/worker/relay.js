@@ -193,6 +193,11 @@ export function createWorker(contracts,resource) {
         }
         return respond(await relay.call(owner,p.name,p.arguments));
       }catch(e){return respond(textResult({error:e.message,status:e.status||400},true));}
-    }catch(e){return json({error:e instanceof SyntaxError?'Invalid JSON.':e.message},e.status||400);}
+    }catch(e){
+      const message=e instanceof SyntaxError?'Invalid JSON.':e.message;
+      const status=e instanceof SyntaxError?400:e.status||503;
+      console.error(JSON.stringify({event:'riff_transport_error',path:new URL(request.url).pathname,status,error:e.name,message}));
+      return json({error:message},status);
+    }
   }};
 }

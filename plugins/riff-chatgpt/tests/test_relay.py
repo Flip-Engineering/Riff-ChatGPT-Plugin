@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+import urllib.error
 
 path=Path(__file__).resolve().parents[1]/'cloud/relay.py'
 spec=importlib.util.spec_from_file_location('riff_cloud_relay',path)
@@ -42,3 +43,24 @@ class RelayTests(unittest.TestCase):
     def test_transport_rejects_arbitrary_endpoints(self):
         with self.assertRaisesRegex(ValueError,'verified'):
             relay.Transport('http://localhost:9999')
+
+    def test_poll_recovers_transient_storage_failure_without_replaying_commands(self):
+        class Transport:
+            def __init__(self): self.calls=0
+            def post(self, route, body, credential):
+                self.calls+=1
+                self.assert_route=route
+                if self.calls<3:
+                    raise urllib.error.HTTPError('https://transport/runtime/poll',503,'Storage unavailable',None,None)
+                return {'command':{'request_id':'new-command'}}
+        transport=Transport()
+        result=relay.poll_command(transport,'session','private',sleep=lambda _:None)
+        self.assertEqual(result,{'request_id':'new-command'})
+        self.assertEqual(transport.calls,3)
+        self.assertEqual(transport.assert_route,'poll')
+
+    def test_poll_does_not_retry_session_rejection(self):
+        class Transport:
+            def post(self, *args): raise RuntimeError('Riff transport rejected this session (401).')
+        with self.assertRaisesRegex(RuntimeError,'401'):
+            relay.poll_command(Transport(),'session','private',sleep=lambda _:self.fail('Auth retry'))

@@ -106,6 +106,7 @@ class AdapterTests(unittest.TestCase):
         resource = self.adapter.resource(UI_URI)["contents"][0]
         self.assertEqual(resource["mimeType"], "text/html;profile=mcp-app")
         self.assertEqual(resource["_meta"]["ui"]["csp"]["connectDomains"], [])
+        self.assertEqual(resource["_meta"]["ui"]["csp"]["resourceDomains"], ["blob:", "data:"])
     def test_unknown_resource_rejected(self):
         with self.assertRaises(AdapterError): self.adapter.resource("file:///etc/passwd")
     def test_missing_ui_fails_explicitly(self):

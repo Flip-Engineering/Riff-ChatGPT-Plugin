@@ -27,7 +27,7 @@ source+='const studio='+json.dumps(compressed)+';\n'
 source+='''const resource={uri:URI,mimeType:MIME,async read(){
  const bytes=Uint8Array.from(atob(studio),c=>c.charCodeAt(0));
  const text=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
- return {uri:URI,mimeType:MIME,text,_meta:{ui:{prefersBorder:false,csp:{connectDomains:[],resourceDomains:[]}},'openai/ui':{preferredDisplayMode:'fullscreen',availableDisplayModes:['inline','fullscreen']}}};
+ return {uri:URI,mimeType:MIME,text,_meta:{ui:{prefersBorder:false,csp:{connectDomains:[],resourceDomains:["blob:","data:"]}},'openai/ui':{preferredDisplayMode:'fullscreen',availableDisplayModes:['inline','fullscreen']}}};
 }};
 export default createWorker(contracts,resource);
 '''.replace('URI',json.dumps(UI_URI)).replace('MIME',json.dumps(MIME))

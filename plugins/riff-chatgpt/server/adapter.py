@@ -16,7 +16,7 @@ from routes import AdapterError, ID, HASH, TOKEN, route
 from transport import LoopbackBackend, NoRedirect, UploadStore, MAX_JSON, MAX_CHUNK, MAX_UPLOAD
 
 VERSION = "0.2.0"
-UI_URI = "ui://riff/studio/adapter-v0.2.0.html"
+UI_URI = "ui://riff/studio/adapter-v0.2.1.html"
 MIME = "text/html;profile=mcp-app"
 MAX_BODY = 256 * 1024
 # Binary chunks are one MiB before base64. The wire budget includes metadata.
@@ -317,5 +317,5 @@ class Adapter:
         if not self.ui_file.is_file():
             raise AdapterError("The packaged Riff studio resource is missing. Reinstall the complete plugin package.")
         return {"contents": [{"uri": UI_URI, "mimeType": MIME, "text": self.ui_file.read_text(),
-                              "_meta": {"ui": {"prefersBorder": False, "csp": {"connectDomains": [], "resourceDomains": []}},
+                              "_meta": {"ui": {"prefersBorder": False, "csp": {"connectDomains": [], "resourceDomains": ["blob:", "data:"]}},
                                         "openai/ui": {"preferredDisplayMode": "fullscreen", "availableDisplayModes": ["inline", "fullscreen"]}}}]}

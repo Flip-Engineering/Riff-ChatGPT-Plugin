@@ -54,6 +54,26 @@ class Transport:
         return json.loads(data)
 
 
+def poll_command(transport, session, credential, sleep=time.sleep):
+    """Recover brief transport loss without resubmitting a native operation."""
+    for attempt in range(3):
+        try:
+            return transport.post('poll', {'session_id': session}, credential).get('command')
+        except urllib.error.HTTPError as exc:
+            # Older transport deployments classified unexpected storage errors
+            # as 400. Authorization/session rejections remain immediately fatal.
+            if exc.code != 400 and exc.code < 500:
+                raise
+            exc.close()
+            if attempt == 2:
+                raise
+        except (OSError, urllib.error.URLError):
+            if attempt == 2:
+                raise
+        print(json.dumps({'status': 'poll_retry', 'attempt': attempt + 1}), flush=True)
+        sleep(attempt + 1)
+
+
 def private_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     with open(path, 'w', opener=lambda p, f: os.open(p, f, 0o600)) as output:
@@ -148,7 +168,7 @@ def main():
     try:
         print(json.dumps({'status': 'connected', 'transport': ENDPOINT, 'native_workspace': str(workspace)}), flush=True)
         while time.monotonic() < deadline and time.time()*1000 < state['expires']:
-            command = transport.post('poll', {'session_id': session}, credential).get('command')
+            command = poll_command(transport, session, credential)
             if not command:
                 time.sleep(1)
                 continue
