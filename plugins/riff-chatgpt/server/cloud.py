@@ -8,6 +8,8 @@ from __future__ import annotations
 import argparse
 import contextlib
 import fcntl
+import hashlib
+import stat
 import json
 import os
 from pathlib import Path
@@ -22,6 +24,17 @@ from launch import ROOT, validate_bundle, environment, workspace_default
 from adapter import Adapter, DraftStore, LoopbackBackend, MAX_INPUT
 from main import RPC, CURRENT_PROTOCOL, PROTOCOL_KEY, CLIENT_CAPABILITIES_KEY
 from runtime import ManagedRiff
+
+
+def socket_path(workspace):
+    # Linux pathname sockets have a 108-byte physical limit. User workspaces
+    # and plugin caches can be much longer, so use a short private directory.
+    directory=Path('/tmp')/('riff-cloud-'+str(os.getuid()))
+    directory.mkdir(mode=0o700,exist_ok=True)
+    info=directory.lstat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode & 0o077:
+        raise ValueError('The cloud socket directory must be private and owned by this user.')
+    return directory/hashlib.sha256(str(workspace).encode()).hexdigest()
 
 
 class Handler(socketserver.StreamRequestHandler):
@@ -47,7 +60,7 @@ def serve(workspace):
     validate_bundle(ROOT, host_python=True)
     environment(ROOT, workspace)
     os.umask(0o077)
-    path = workspace / 'cloud.sock'
+    path = socket_path(workspace)
     def stop(*_):
         raise KeyboardInterrupt
     for sig in (signal.SIGTERM, signal.SIGINT):
@@ -72,7 +85,7 @@ def serve(workspace):
 
 def exchange(workspace, message):
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
-        client.connect(str(workspace/'cloud.sock'))
+        client.connect(str(socket_path(workspace)))
         client.sendall((json.dumps(message, allow_nan=False)+'\n').encode())
         with client.makefile('rb') as stream:
             return json.loads(stream.readline())
@@ -84,7 +97,7 @@ def ensure(workspace, startup_seconds):
         raise ValueError('Keep the cloud workspace outside the replaceable plugin package.')
     with (workspace/'cloud-start.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
-        if (workspace/'cloud.sock').exists():
+        if socket_path(workspace).exists():
             try:
                 exchange(workspace,{'jsonrpc':'2.0','id':0,'method':'ping'})
                 current=json.loads((workspace/'cloud-process.json').read_text())
@@ -100,7 +113,7 @@ def ensure(workspace, startup_seconds):
         while time.monotonic()<deadline:
             if process.poll() is not None:
                 raise RuntimeError('Riff cloud startup failed. Inspect '+str(workspace/'cloud.log'))
-            if (workspace/'cloud.sock').exists():
+            if socket_path(workspace).exists():
                 try:
                     exchange(workspace,{'jsonrpc':'2.0','id':0,'method':'ping'})
                     return
