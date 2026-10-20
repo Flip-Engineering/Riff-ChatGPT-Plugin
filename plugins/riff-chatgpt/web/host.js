@@ -412,9 +412,28 @@
 
     async downloadBlob(blob, name) {
       await this.ready;
-      if (!this.hostCapabilities.downloadFile) throw new Error("This ChatGPT host does not expose app file downloads.");
       name = String(name).replace(/[\\/\x00-\x1f\x7f]/g, "_").slice(0, 240) || "riff-export";
       if (blob.size > MEDIA_LIMIT) throw new Error("This file exceeds the host download size limit.");
+      if (!this.hostCapabilities.downloadFile) {
+        // Chat's documented file extension is available alongside MCP Apps even
+        // when the host does not advertise the shared download-file capability.
+        const files = this.win.openai;
+        if (typeof files?.uploadFile !== "function" || typeof files?.getFileDownloadUrl !== "function" ||
+            typeof files?.openExternal !== "function" || typeof this.win.File !== "function") {
+          throw new Error("This ChatGPT host does not expose app file downloads.");
+        }
+        const { fileId } = await files.uploadFile(new this.win.File([blob], name, {
+          type: blob.type || "application/octet-stream",
+        }), { library: true });
+        if (typeof fileId !== "string" || !fileId) throw new Error("ChatGPT did not return the exported file reference.");
+        const { downloadUrl } = await files.getFileDownloadUrl({ fileId });
+        let url;
+        try { url = new URL(downloadUrl); } catch { /* Reject malformed host responses. */ }
+        if (url?.protocol !== "https:" || url.username || url.password) throw new Error("ChatGPT did not return a valid file download URL.");
+        await files.openExternal({ href: url.href, redirectUrl: false });
+        this.emit("download", { name, bytes: blob.size });
+        return { fileId };
+      }
       const data = this.encode(new Uint8Array(await blob.arrayBuffer()));
       const result = await this.request("ui/download-file", { contents: [{ type: "resource", resource: {
         uri: "file:///" + encodeURIComponent(name), mimeType: blob.type || "application/octet-stream", blob: data,

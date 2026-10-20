@@ -216,6 +216,44 @@ test('denied downloads and messages are not announced as delivered', async () =>
   await assert.rejects(b.message('Write a chorus'), /could not receive/); b.close();
 });
 
+test('Chat file extension exports exact bytes to Library without a shared download capability', async () => {
+  const h = mockWindow(), b = new RiffBridge(h.win); await b.ready;
+  b.hostCapabilities = {}; h.win.File = File;
+  const calls = [];
+  h.win.openai = {
+    async uploadFile(file, options) { calls.push({ file, options }); return { fileId: 'file-export' }; },
+    async getFileDownloadUrl(input) { calls.push(input); return { downloadUrl: 'https://files.chatgpt.test/export.wav' }; },
+    async openExternal(input) { calls.push(input); },
+  };
+  const events = []; b.on('download', value => events.push(value));
+  const bytes = wavFixture();
+  assert.deepEqual(await b.downloadBlob(new Blob([bytes], { type: 'audio/wav' }), '../take.wav'), { fileId: 'file-export' });
+  assert.deepEqual(Buffer.from(await calls[0].file.arrayBuffer()), bytes);
+  assert.equal(calls[0].file.name, '.._take.wav');
+  assert.equal(calls[0].file.type, 'audio/wav');
+  assert.deepEqual(calls[0].options, { library: true });
+  assert.deepEqual(calls[1], { fileId: 'file-export' });
+  assert.deepEqual(calls[2], { href: 'https://files.chatgpt.test/export.wav', redirectUrl: false });
+  assert.deepEqual(events, [{ name: '.._take.wav', bytes: bytes.length }]);
+  assert.equal(h.sent.some(x => x.message.method === 'ui/download-file'), false); b.close();
+});
+
+test('Chat file export does not replay rejected uploads or announce failed downloads', async () => {
+  const h = mockWindow(), b = new RiffBridge(h.win); await b.ready;
+  b.hostCapabilities = {}; h.win.File = File;
+  let uploads = 0, opened = 0; const events = []; b.on('download', x => events.push(x));
+  h.win.openai = {
+    async uploadFile() { uploads++; throw new Error('Upload denied'); },
+    async getFileDownloadUrl() { return { downloadUrl: 'javascript:alert(1)' }; },
+    async openExternal() { opened++; },
+  };
+  await assert.rejects(b.downloadBlob(new Blob(['score']), 'score.abc'), /Upload denied/);
+  assert.equal(uploads, 1);
+  h.win.openai.uploadFile = async () => ({ fileId: 'file-export' });
+  await assert.rejects(b.downloadBlob(new Blob(['score']), 'score.abc'), /valid file download URL/);
+  assert.equal(opened, 0); assert.deepEqual(events, []); b.close();
+});
+
 test('background context omits transcript content and explicit context attaches it', async () => {
   const h = mockWindow(() => ({})); const b = new RiffBridge(h.win);
   const context = { recipe: { style: 'folk' }, sharedDraftRevision: 3 };

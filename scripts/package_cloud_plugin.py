@@ -54,7 +54,7 @@ def package(source,destination):
         # Desktop connection metadata never enters the cloud package.
         (bundle/'mcp.json').unlink(missing_ok=True)
         config['execution']='chatgpt-cloud'
-        config['plugin_version']='0.4.1'
+        config['plugin_version']='0.4.2'
         config['host_python_minimum']='3.12'
         (bundle/'runtime/runtime.json').write_text(json.dumps(config,indent=2)+'\n')
         records=[{'path':p.relative_to(bundle).as_posix(),'bytes':p.stat().st_size,'sha256':sha(p),'executable':os.access(p,os.X_OK)}
@@ -64,7 +64,7 @@ def package(source,destination):
         with tarfile.open(archive,'w:gz') as tar:
             tar.add(bundle,arcname='riff-chatgpt')
         metadata=json.loads((PLUGIN/'plugin.json').read_text())
-        metadata['version']='0.4.1'
+        metadata['version']='0.4.2'
         metadata['description']='Compose and generate music with Riff inside your ChatGPT Chat cloud environment.'
         metadata['extensions']['com.openai']['apps']='./.app.json'
         interface=metadata['extensions']['com.openai']['interface']
