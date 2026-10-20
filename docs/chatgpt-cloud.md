@@ -562,3 +562,13 @@ remain independent of plugin installation, preserving models and music.
 The bridge has one user-facing name, Riff; its implementation is still hosted
 on the existing private Site. This change does not widen access or claim public
 availability. Upstream Riff and its pinned dependency remain unchanged.
+
+
+### 1.1.1: describe what users can do
+
+The installed canonical plugin listing was verified at version 1.1.1 on
+2026-10-20, with its Riff App and riff-studio skill together. Its description
+and skill summary now explain making songs with vocals and instruments,
+revising lyrics and arrangements, listening, and downloading music. The
+listing showed “New version uploaded” and retained its existing App identity.
+This copy update was checked in the generated archive and the installed listing.
