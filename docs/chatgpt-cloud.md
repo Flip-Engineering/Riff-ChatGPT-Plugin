@@ -453,3 +453,52 @@ A separate upstream receipt accounting discrepancy is tracked in
 AR and NAR sizes/hashes and canonical provenance verified correctly; the receipt's
 aggregate size differs from the referenced payload total by 16 MiB. This did not
 prevent installation or selection.
+
+
+Site version 11 also handles observed R2 internal error 10001 for `get` and
+`list` only. Ambiguous write failures are not retried. Ten transport tests pass.
+A fresh actual Chat studio then played the original recording with an animated
+custom visualizer and no error toast. Earlier failed visualization evidence is
+retained; recovery is an observed later check, not a reinterpretation of failure.
+Deployment: `appgdep_6ad7cd53823c81919f0c9ab029ede7ab`.
+
+Version 0.4.5 replaces unavailable native Qwen/MLX writing and OpenRouter with
+**ChatGPT session**. Phrase shuffle remains available. YuE2 still composes native
+melody/chord scores and renders audio. The adapter routes legacy writer selections
+to the current session and prevents a Surprise-song job from queuing a separate
+writer when lyrics are missing. Complete the lyrics in Chat before generation.
+Writing, score revision and review controls prepare a visible, selectable request
+for Chat; WAV export does the same. Copy/paste is explicit because the actual
+host's component message API stalled. Preparing a request does not send it or
+publish a file. Normal conversation export remains the demonstrated file route.
+The plugin has no OpenRouter credential setup. These changes are downstream only;
+upstream Riff and its desktop writer remain untouched.
+
+The browser fixture passed original studio navigation, score composition and
+editing, library playback, LoRA workflows, Chat request handoffs and video export.
+Neural inference in that fixture is a declared test double. Backend tests cover
+legacy-writer redirection, no external review dispatch, existing-lyrics generation
+and refusal to queue an implicit separate writer. The actual Chat install and
+visible controls are verified separately below.
+
+The owner-private Site version 13 uses resource
+`ui://riff/studio/adapter-v0.2.6.html`, source
+`c37932932c42625df580fb7fd7c6678e3c0faed8`, deployment
+`appgdep_6ad7cfbae9648191bc1edf0d2f08d0c3`. The existing primary plugin identity
+was updated to 0.4.5. This keeps the cloud runtime in each user's Chat environment;
+the Site supplies the UI and transport, and the homelab is not a runtime backend.
+
+Actual cloud 0.4.5 verification returned ready state, both existing recordings,
+zero queued jobs and review provider **ChatGPT session**. A direct app call to
+`riff_write` with `idea_engine=chatgpt` returned a prepared `write` request,
+without a provider call or draft edit. This verifies the installed adapter's
+session routing, rather than merely a label change in the browser.
+
+Actual Chat panel acceptance of 0.4.5 also passed: the writer selector contains
+only **ChatGPT session** and **Phrase shuffle / instant**. Local-writer controls
+and OpenRouter settings are hidden. The existing recording played normally.
+A trusted WAV-to-Chat click opened the new request dialog without starting a Chat
+run or saving a duplicate Library file. This host denied the clipboard API;
+the dialog kept the complete text selected and displayed the keyboard-copy
+instruction, rather than falsely reporting that it had copied or sent anything.
+The full Studio was left open. Automatic host file/message delivery remains #4.

@@ -341,6 +341,82 @@
       "models_ready": true,
       "jobs": 0,
       "native_version": "0.4.4"
+    },
+    "read_internal_error_followup": {
+      "source_commit": "5468499",
+      "site_version": 11,
+      "deployment": "appgdep_6ad7cd53823c81919f0c9ab029ede7ab",
+      "tests": 10,
+      "retry_10001_methods": [
+        "get",
+        "list"
+      ],
+      "retry_ambiguous_write": false,
+      "actual_studio_recovery": {
+        "playback_advanced": true,
+        "visualizer_changed": true,
+        "error_toast": ""
+      }
+    }
+  },
+  "release_045": {
+    "source_commit": "82561fd",
+    "installed_version": "0.4.5",
+    "writing_provider": "current ChatGPT session",
+    "separate_qwen_mlx_writer": false,
+    "openrouter_setup": false,
+    "request_delivery": "Visible selectable text for explicit copy/paste; no automatic component-message dispatch",
+    "tests": {
+      "python": 107,
+      "bridge": 30,
+      "packaging": 5,
+      "transport": 10,
+      "original_studio_browser": "passed; neural inference is an explicit test double"
+    },
+    "site": {
+      "version": 13,
+      "source_commit": "c37932932c42625df580fb7fd7c6678e3c0faed8",
+      "deployment": "appgdep_6ad7cfbae9648191bc1edf0d2f08d0c3",
+      "resource": "ui://riff/studio/adapter-v0.2.6.html",
+      "audience": "owner-private"
+    },
+    "actual_cloud": {
+      "native_version": "0.4.5",
+      "state_status": 200,
+      "ready": true,
+      "recordings": 2,
+      "jobs": 0,
+      "review_provider": "ChatGPT session",
+      "writer_request": {
+        "status": 200,
+        "task": "write",
+        "isError": false
+      },
+      "draft_not_edited": true
+    },
+    "actual_panel": {
+      "writers": [
+        {
+          "value": "chatgpt",
+          "text": "ChatGPT session"
+        },
+        {
+          "value": "phrases",
+          "text": "Phrase shuffle / instant"
+        }
+      ],
+      "openrouterSettingsVisible": false,
+      "localWriterVisible": false,
+      "playbackTimes": [
+        0.116415,
+        0.373966,
+        0.64072,
+        0.905034
+      ],
+      "requestDialogOpen": true,
+      "copyButton": "Press \u2318C or Ctrl+C to copy",
+      "requestSelected": 326,
+      "status": "Request ready. Paste it into ChatGPT to continue."
     }
   }
 }
