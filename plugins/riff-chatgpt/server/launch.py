@@ -22,7 +22,7 @@ def workspace_default():
     return Path(os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local/share"))) / "riff-chatgpt"
 
 
-def validate_bundle(root):
+def validate_bundle(root, *, host_python=False):
     from runtime import file_hash
     config_path, manifest_path = root / "runtime/runtime.json", root / "bundle-manifest.json"
     if not config_path.is_file() or not manifest_path.is_file():
@@ -45,8 +45,10 @@ def validate_bundle(root):
             raise ValueError("Riff component is not executable: " + relative)
     required = {"runtime/runtime.json", "server/launch.py", "server/main.py", "server/adapter.py",
                 "server/runtime.py", "riff/studio.py", "riff/sources.json", "dist/studio.html",
-                "runtime/python/bin/python3", "runtime/engine/audiocpp_cli",
+                "runtime/engine/audiocpp_cli",
                 "runtime/media/ffmpeg", "runtime/media/ffprobe", "runtime/control/bin/riff_installer"}
+    if not host_python:
+        required.add("runtime/python/bin/python3")
     if not required.issubset(seen):
         raise ValueError("The plugin bundle is missing required runtime components.")
     config = json.loads(config_path.read_text())
@@ -54,7 +56,9 @@ def validate_bundle(root):
     actual = ("macos" if sys.platform == "darwin" else sys.platform) + "-" + machine
     if config.get("platform") != actual:
         raise ValueError(f"This Riff package is for {config.get('platform')}; this host is {actual}.")
-    if Path(sys.executable).resolve() != (root / "runtime/python/bin/python3").resolve():
+    if host_python and (config.get("execution") != "chatgpt-cloud" or sys.version_info < (3, 12)):
+        raise ValueError("Cloud execution requires a cloud package and Python 3.12 or newer.")
+    if not host_python and Path(sys.executable).resolve() != (root / "runtime/python/bin/python3").resolve():
         raise ValueError("Launch Riff with the Python interpreter included in its plugin package.")
     if sys.platform == "linux":
         expected = tuple(int(part) for part in config["glibc_build_host"].split(".")[:2])
