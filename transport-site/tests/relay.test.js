@@ -93,3 +93,49 @@ test('MCP commands require trusted caller identity; static resources support hos
     assert.equal(response.result.cacheScope,'private');
   }
 });
+
+test('heartbeat writes stay below the R2 per-key write limit while online stays fresh',async()=>{
+  let at=1000000;const bucket=new Bucket(),r=new Relay(bucket,tools,()=>at);
+  const pair=await r.pair('alice'),key=(await r.claim(pair.session_id,pair.enrollment_token)).worker_token;
+  await r.poll(pair.session_id,key);const serial=bucket.serial;
+  for(let i=0;i<10;i++){at+=100;await r.poll(pair.session_id,key);}
+  assert.equal(bucket.serial,serial,'rapid polling must not rewrite the heartbeat');
+  at+=4000;await r.poll(pair.session_id,key);
+  assert.equal(bucket.serial,serial+1);
+  assert.equal((await r.get('heartbeat/'+pair.session_id)).value.at,at);
+});
+
+test('R2 rate-limit recovery preserves conditional claims and never repeats the native mutation',async()=>{
+  let at=1000000;const waits=[];
+  class LimitedBucket extends Bucket {
+    constructor(){super();this.lastWrite=new Map();}
+    async put(key,...args){
+      if(at-(this.lastWrite.get(key)??-Infinity)<1000)
+        throw new Error('put: Reduce your concurrent request rate for the same object. (10058)');
+      const result=await super.put(key,...args);if(result)this.lastWrite.set(key,at);return result;
+    }
+  }
+  const r=new Relay(new LimitedBucket(),tools,()=>at,async ms=>{waits.push(ms);at+=ms;});
+  const pair=await r.pair('alice'),key=(await r.claim(pair.session_id,pair.enrollment_token)).worker_token;
+  const id='a'.repeat(32),path='requests/'+pair.session_id+'/'+id;
+  await r.put(path,{id,state:'queued',deadline:at+45000,tool:'riff_save_draft',arguments:{expected_revision:0}});
+  const command=await r.poll(pair.session_id,key);assert.equal(command.request_id,id);
+  let mutations=0;const result={structuredContent:{revision:++mutations}};
+  assert.equal(await r.poll(pair.session_id,key),null);
+  await r.complete(pair.session_id,key,id,command.claim,result);
+  await assert.rejects(r.complete(pair.session_id,key,id,command.claim,result),/late|duplicate/);
+  assert.deepEqual((await r.get(path)).value.result,result);
+  assert.equal(mutations,1);assert.ok(waits.length>=3);
+});
+
+test('R2 retries are bounded and unrelated faults are not retried',async()=>{
+  let calls=0;const waits=[],seen=[],fault=Object.assign(new Error('rate limited'),{code:10058});
+  const r=new Relay({put:async(...args)=>{calls++;seen.push(args);throw fault;}},tools,Date.now,async ms=>waits.push(ms));
+  await assert.rejects(r.put('key',{value:1},'original-etag'),e=>e===fault);
+  assert.equal(calls,3);assert.deepEqual(waits,[1100,2200]);
+  assert.deepEqual(seen,Array.from({length:3},()=>['key','{"value":1}',{onlyIf:{etagMatches:'original-etag'}}]));
+  calls=0;waits.length=0;
+  r.bucket.put=async()=>{calls++;throw new Error('authorization rejected');};
+  await assert.rejects(r.put('key',{}),/authorization/);
+  assert.equal(calls,1);assert.deepEqual(waits,[]);
+});

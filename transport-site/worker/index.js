@@ -15,9 +15,21 @@ const json = (value, status=200) => new Response(encode(value), {status, headers
 const textResult = (body, isError=false) => ({content:[{type:'text',text:encode(body)}],structuredContent:body,isError});
 
 class Relay {
-  constructor(bucket, contracts, clock=now) {this.bucket=bucket;this.contracts=contracts;this.clock=clock;}
-  async get(key) {const obj=await this.bucket.get(key);return obj?{value:await obj.json(),etag:obj.etag}:null;}
-  async put(key, value, etag) {return this.bucket.put(key,encode(value),etag?{onlyIf:{etagMatches:etag}}:{onlyIf:{etagDoesNotMatch:'*'}});}
+  constructor(bucket, contracts, clock=now, storagePause=pause) {this.bucket=bucket;this.contracts=contracts;this.clock=clock;this.storagePause=storagePause;}
+  async storage(method,...args) {
+    for(let attempt=0;attempt<3;attempt++) {
+      try{return await this.bucket[method](...args);}
+      catch(e) {
+        // R2 explicitly rejects same-key write bursts with code 10058. Retry
+        // only that storage operation with its original CAS condition. Never
+        // replay a native command or mask other storage/authentication faults.
+        if(attempt===2||!(Number(e?.code)===10058||/\b10058\b/.test(String(e?.message))))throw e;
+        await this.storagePause(1100*(attempt+1));
+      }
+    }
+  }
+  async get(key) {const obj=await this.storage('get',key);return obj?{value:await obj.json(),etag:obj.etag}:null;}
+  async put(key, value, etag) {return this.storage('put',key,encode(value),etag?{onlyIf:{etagMatches:etag}}:{onlyIf:{etagDoesNotMatch:'*'}});}
   ownerKey(owner) {return 'owners/'+owner;}
   async ownerSession(owner) {
     const map=await this.get(this.ownerKey(owner));
@@ -30,7 +42,7 @@ class Relay {
     if(await this.ownerSession(owner))throw error('A runtime pairing already exists. Disconnect it explicitly before replacing it.',409);
     const id=uuid(),enrollment=token(),expires=this.clock()+SESSION_MS;
     await this.put('sessions/'+id,{id,owner,expires,enrollmentHash:await sha(enrollment),workerHash:null,claimed:false});
-    if(!await this.put(key,{id},previous?.etag)){await this.bucket.delete('sessions/'+id);throw error('Another runtime pairing won the connection race.',409);}
+    if(!await this.put(key,{id},previous?.etag)){await this.storage('delete','sessions/'+id);throw error('Another runtime pairing won the connection race.',409);}
     // The worker capability is revealed only once, after enrollment succeeds.
     return {session_id:id,enrollment_token:enrollment,enrollment_expires:this.clock()+300000,expires};
   }
@@ -57,14 +69,16 @@ class Relay {
   }
   async poll(id,credential) {
     await this.authenticate(id,credential);
-    await this.bucket.put('heartbeat/'+id,encode({at:this.clock()}));
-    const items=await this.bucket.list({prefix:'requests/'+id+'/',limit:32});
+    const heartbeatKey='heartbeat/'+id,heartbeat=await this.get(heartbeatKey);
+    if(!heartbeat||this.clock()-heartbeat.value.at>=5000)
+      await this.put(heartbeatKey,{at:this.clock()},heartbeat?.etag);
+    const items=await this.storage('list',{prefix:'requests/'+id+'/',limit:32});
     // R2 lists UUID keys lexically, not by submission time. Repeated UI polls
     // must not starve an older library/media command with a later UUID.
     const records=await Promise.all(items.objects.map(async item=>({item,record:await this.get(item.key)})));
     records.sort((a,b)=>(a.record?.value.deadline||0)-(b.record?.value.deadline||0));
     for(const {item,record} of records) {
-      if(record&&record.value.deadline<this.clock()){await this.bucket.delete(item.key);continue;}
+      if(record&&record.value.deadline<this.clock()){await this.storage('delete',item.key);continue;}
       if(record?.value.state!=='queued')continue;
       const r=record.value;
       if(r.deadline<this.clock()){await this.put(item.key,{...r,state:'expired'},record.etag);continue;}
@@ -88,44 +102,44 @@ class Relay {
     if(!session?.value.claimed)throw error('Connect this conversation’s Riff cloud runtime first.',503);
     const id=session.value.id,hb=await this.get('heartbeat/'+id);
     if(!hb||this.clock()-hb.value.at>FRESH_MS)throw error('The paired cloud runtime is offline. Restart its retained relay session; no command was sent.',503);
-    const queued=await this.bucket.list({prefix:'requests/'+id+'/',limit:32});
+    const queued=await this.storage('list',{prefix:'requests/'+id+'/',limit:32});
     if(queued.objects.length>=32)throw error('This runtime already has 32 outstanding requests. Inspect them before sending more.',429);
     const requestId=uuid(),key='requests/'+id+'/'+requestId,deadline=this.clock()+CALL_MS;
     await this.put(key,{id:requestId,state:'queued',tool:name,arguments:args,deadline});
     while(this.clock()<deadline) {
       const r=await this.get(key);
-      if(r?.value.state==='complete'){await this.bucket.delete(key);return r.value.result;}
+      if(r?.value.state==='complete'){await this.storage('delete',key);return r.value.result;}
       if(!await this.ownerSession(owner))throw error('Runtime disconnected; inspect native state before retrying.',503);
       await pause(200);
     }
     const r=await this.get(key);
-    if(r?.value.state==='complete'){await this.bucket.delete(key);return r.value.result;}
+    if(r?.value.state==='complete'){await this.storage('delete',key);return r.value.result;}
     if(r)await this.put(key,{id:requestId,state:'expired',deadline},r.etag);
     throw error('Runtime command '+requestId+' timed out. Its outcome may be uncertain; inspect native state before retrying. It will not be replayed.',504);
   }
   async disconnect(owner) {
     const key=this.ownerKey(owner),map=await this.get(key);
     if(!map)return {disconnected:true};
-    await this.bucket.delete(key);
+    await this.storage('delete',key);
     const id=map.value.id;
-    await this.bucket.delete(['sessions/'+id,'heartbeat/'+id]);
+    await this.storage('delete',['sessions/'+id,'heartbeat/'+id]);
     let cursor;
-    do {const list=await this.bucket.list({prefix:'requests/'+id+'/',limit:1000,cursor});if(list.objects.length)await this.bucket.delete(list.objects.map(x=>x.key));cursor=list.truncated?list.cursor:null;}while(cursor);
+    do {const list=await this.storage('list',{prefix:'requests/'+id+'/',limit:1000,cursor});if(list.objects.length)await this.storage('delete',list.objects.map(x=>x.key));cursor=list.truncated?list.cursor:null;}while(cursor);
     return {disconnected:true};
   }
   async reapExpired() {
     const marker=await this.get('maintenance/cursor');
     if(marker&&this.clock()-marker.value.at<60000)return;
-    const list=await this.bucket.list({prefix:'sessions/',limit:32,...(marker?.value.cursor?{cursor:marker.value.cursor}:{})});
+    const list=await this.storage('list',{prefix:'sessions/',limit:32,...(marker?.value.cursor?{cursor:marker.value.cursor}:{})});
     for(const item of list.objects) {
       const record=await this.get(item.key);
       if(!record||record.value.expires>this.clock())continue;
       const id=record.value.id;
       let cursor;
-      do {const requests=await this.bucket.list({prefix:'requests/'+id+'/',limit:1000,cursor});if(requests.objects.length)await this.bucket.delete(requests.objects.map(x=>x.key));cursor=requests.truncated?requests.cursor:null;}while(cursor);
-      await this.bucket.delete(['sessions/'+id,'heartbeat/'+id]);
+      do {const requests=await this.storage('list',{prefix:'requests/'+id+'/',limit:1000,cursor});if(requests.objects.length)await this.storage('delete',requests.objects.map(x=>x.key));cursor=requests.truncated?requests.cursor:null;}while(cursor);
+      await this.storage('delete',['sessions/'+id,'heartbeat/'+id]);
     }
-    await this.bucket.put('maintenance/cursor',encode({at:this.clock(),cursor:list.truncated?list.cursor:null}));
+    await this.storage('put','maintenance/cursor',encode({at:this.clock(),cursor:list.truncated?list.cursor:null}));
   }
 }
 
