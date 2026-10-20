@@ -1,9 +1,9 @@
-# Riff in ChatGPT Work Cloud
+# Riff in ChatGPT Chat
 
-The candidate cloud package is designed to run Riff in each user's ChatGPT Work cloud computer. It has
+The candidate cloud package is designed to run Riff in each user's ChatGPT Chat cloud execution environment. It has
 no external MCP endpoint and never uses the developer's homelab or the user's
 local computer as its production backend. The homelab remains a build/CI host.
-Installation and native generation in ChatGPT Work have not yet passed end-to-end validation.
+Installation and native generation in ChatGPT Chat have not yet passed end-to-end validation.
 
 ## OpenAI documentation contract
 
@@ -42,8 +42,8 @@ limit the ZIP to 100 MB compressed, 512 MiB extracted, 100 MiB per member and
 check both the outer plugin archive and the extracted runtime independently.
 
 The cloud distribution is a portable plugin containing a skill, a small Python
-launcher and a checksum-verified native runtime archive. ChatGPT Work supplies
-Python 3.12+. The package carries the pinned Riff source, CPU YuE2 engine,
+launcher and a checksum-verified native runtime archive. The candidate launcher currently requires Python 3.12+; Chat must supply it
+or the launcher must be adapted after checking its actual runtime. The package carries the pinned Riff source, CPU YuE2 engine,
 Elixir/ERTS score/control runtime, media executables, libraries, studio source
 and component notices. The separately licensed music models download from the
 pinned public Hugging Face revision into the user's cloud workspace.
@@ -62,7 +62,7 @@ python3 scripts/package_cloud_plugin.py \
 ```
 
 Install the resulting archive through ChatGPT's private plugin importer and
-start a fresh Work chat. The skill launches its bundled runtime with:
+start a fresh Chat conversation. The skill launches its bundled runtime with:
 
 ```sh
 python3 /path/to/skill/scripts/riff.py start
@@ -78,7 +78,7 @@ Cloud workspace persistence is bounded by the cloud computer's lifetime. Models
 may need to download again after reset. Publish requested recordings and recipe
 receipts to the user's Library. A queued job is not completed audio.
 
-## Actual host qualification
+## Historical Work probe: not Chat acceptance
 
 On October 20, a fresh ChatGPT Work browser chat executed a read-only probe in
 its cloud environment: Ubuntu 24.04.3, glibc 2.39, x86-64, the required AVX2/FMA/
@@ -88,6 +88,7 @@ responded to bounded HTTPS requests. Python 3.12.14, FFmpeg/FFprobe and Node
 were present; CMake, Erlang and Elixir were not on PATH. The package carries its
 score runtime and requires no compiler in the user's cloud computer.
 
+This Work probe does not validate the required Chat surface.
 These are measured compatibility results for one cloud environment, not a
 promise that every future cloud computer is identical. Bundle validation checks
 architecture, glibc, CPU requirements and every carried file before startup.

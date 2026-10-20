@@ -18,9 +18,9 @@ npx playwright install chromium
 
 Validation needs Python 3.10+, Node.js, Chromium and FFmpeg/FFprobe. Run it on the homelab with `TMPDIR` and the checkout on NVMe. No hosted compute is required. Python runtime packaging remains separately pinned for user distributions.
 
-## ChatGPT Work Cloud
+## ChatGPT Chat target
 
-The cloud distribution runs the bundled native engine inside each user's ChatGPT Work cloud computer, with no homelab or local-computer backend. See [cloud packaging and qualification](docs/chatgpt-cloud.md). It is a skill-driven cloud runtime; interactive MCP App mounting is a separate host integration and must be verified explicitly. The original local stdio distribution remains available.
+ChatGPT Chat is the required user surface. The candidate cloud distribution bundles the native engine for execution in the user's Chat environment, with no homelab or local-computer backend. Installation and native generation must be validated in Chat itself; Work-only results do not satisfy this target. See [cloud packaging and qualification](docs/chatgpt-cloud.md). It is a skill-driven cloud runtime; interactive MCP App mounting is a separate host integration and must be verified explicitly. The original local stdio distribution remains available.
 
 ## Run and package
 

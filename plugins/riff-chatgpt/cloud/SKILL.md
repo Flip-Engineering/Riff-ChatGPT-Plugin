@@ -1,12 +1,14 @@
 ---
 name: riff-studio
-description: Compose and revise songs, generate actual YuE2 music and symbolic scores, manage LoRAs and compare/export recordings using Riff inside this user's ChatGPT Work cloud computer. Use for Riff music requests; the native engine and score/media runtime are bundled with this plugin.
+description: Compose and revise songs, generate actual YuE2 music and symbolic scores, manage LoRAs and compare/export recordings using Riff inside this user's ChatGPT Chat cloud execution environment. Use for Riff music requests; the native engine and score/media runtime are bundled with this plugin.
 ---
 
-# Riff in ChatGPT Work Cloud
+# Riff in ChatGPT Chat
 
 Run the bundled Riff runtime in **this user's cloud execution environment**.
-Use the command tool available in ChatGPT Work. Never connect to a local
+Use the Python or command execution tool actually available in ChatGPT Chat.
+If this Chat cannot execute the bundled runtime, report the concrete error;
+do not switch to Work or claim generation succeeded. Never connect to a local
 computer, the developer's homelab, or an external inference service. A plugin
 installation supplies the executable runtime; music weights download from the
 pinned public Hugging Face revision into this cloud workspace on first use.
@@ -18,7 +20,8 @@ python3 /absolute/path/to/this/skill/scripts/riff.py start
 python3 /absolute/path/to/this/skill/scripts/riff.py call riff_read --arguments '{"path":"/api/state"}'
 ```
 
-The private worker persists between command calls in the cloud computer. Jobs,
+The private worker is designed to persist between execution calls. Verify it
+is still running before reusing it; host session lifetime is not guaranteed. Jobs,
 saved drafts, models and recordings live outside the replaceable plugin package.
 A new/reset cloud computer may need setup again. Save requested outputs to the
 user's Library; do not claim storage survives cloud computer deletion.

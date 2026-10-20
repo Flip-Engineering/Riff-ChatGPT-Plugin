@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package verified Riff native components for execution in ChatGPT Work Cloud.
+"""Package verified Riff native components for execution in ChatGPT Chat.
 
 The cloud host supplies Python 3.12+. Native inference, ERTS/control and media
 executables are carried in the archive; no MCP endpoint or homelab is used.
@@ -59,10 +59,10 @@ def package(source,destination):
             tar.add(bundle,arcname='riff-chatgpt')
         metadata=json.loads((PLUGIN/'plugin.json').read_text())
         metadata['version']='0.3.0'
-        metadata['description']='Compose and generate music with Riff inside your ChatGPT Work cloud computer.'
+        metadata['description']='Compose and generate music with Riff inside your ChatGPT Chat cloud environment.'
         interface=metadata['extensions']['com.openai']['interface']
-        interface['shortDescription']='Make music in ChatGPT Work'
-        interface['longDescription']='Compose music, generate YuE2 recordings and scores, and manage LoRAs inside your ChatGPT Work cloud computer. The plugin bundles the native Riff engine, score runtime and media tools. Music models download separately into your cloud workspace; no local computer or developer server is required.'
+        interface['shortDescription']='Make music with Riff in Chat'
+        interface['longDescription']='Compose music, generate YuE2 recordings and scores, and manage LoRAs inside your ChatGPT Chat cloud environment. The plugin bundles the native Riff engine, score runtime and media tools. Music models download separately into your cloud workspace; no local computer or developer server is required.'
         interface.pop('capabilities',None)
         skill='riff-chatgpt/skills/riff-studio/'
         with zipfile.ZipFile(destination,'w',zipfile.ZIP_DEFLATED) as zip:
