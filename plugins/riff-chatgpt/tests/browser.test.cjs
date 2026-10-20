@@ -88,6 +88,7 @@ test('complete original Riff studio through production ManagedRiff and stdio MCP
     });
     await app.locator('#riff-share-context').click();
     await app.evaluate(() => RiffHost.fullscreen());
+    await app.locator('#title').fill('Unsaved writing snapshot');
     await app.locator('#riff-write-with-chatgpt').click();
     await app.locator('#riff-writing-request').fill('Write a more hopeful chorus.');
     await app.locator('#riff-chatgpt-writing button[type=submit]').click();
@@ -95,7 +96,10 @@ test('complete original Riff studio through production ManagedRiff and stdio MCP
     const chat = await page.evaluate(() => ({ messages: hostMessages, contexts: hostContexts, trace: hostTrace }));
     assert.equal(chat.messages.length, 1);
     assert(chat.messages[0].content[0].text.includes('hopeful chorus'));
-    assert(chat.messages[0].content[0].text.includes('ChatGPT revised title'));
+    assert(chat.messages[0].content[0].text.includes('Unsaved writing snapshot'));
+    const submittedDraft = JSON.parse(chat.messages[0].content[0].text.split('\n\n')[1]);
+    await host.rpc('tools/call', { name: 'riff_save_draft', arguments: { expected_revision: submittedDraft.expected_revision, recipe: { ...submittedDraft.recipe, title: 'Returned from ChatGPT' } } });
+    await app.waitForFunction(() => document.querySelector('#title').value === 'Returned from ChatGPT');
     assert(chat.contexts.some(x => x.content?.[0]?.type === 'text'));
     assert(chat.trace.some(x => x.method === 'ui/request-display-mode'));
     assert.equal(await app.locator('#riff-chat-request').count(), 0);
