@@ -161,7 +161,8 @@ class BundlerTests(unittest.TestCase):
         self.root = Path(self.temp.name); self.web = self.root / "web"
         # Exercise the complete real studio, including its video worker and
         # LoRA assets. This replaces the old hand-written patch-point fixture.
-        source = ROOT.parents[1]
+        from riff_dependency import riff_root
+        source = riff_root()
         shutil.copytree(source / "web", self.web)
         shutil.copy2(source / "VERSION", self.root / "VERSION")
         self.app = (self.web / "app.js").read_text()

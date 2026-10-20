@@ -16,7 +16,9 @@ import sys
 import wave
 
 PLUGIN = Path(__file__).resolve().parents[2]
-SOURCE = PLUGIN.parents[1]
+sys.path.insert(0, str(PLUGIN / "scripts"))
+from riff_dependency import riff_root
+SOURCE = riff_root()
 sys.path.insert(0, str(PLUGIN / "server"))
 from adapter import Adapter, DraftStore, LoopbackBackend
 from main import serve

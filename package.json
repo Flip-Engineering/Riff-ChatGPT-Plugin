@@ -1,17 +1,12 @@
 {
-  "name": "riff-music-studio",
-  "version": "0.6.20",
+  "name": "riff-chatgpt-plugin",
+  "version": "0.2.0",
   "private": true,
-  "description": "Riff generative music studio",
+  "description": "ChatGPT plugin downstream of pinned Riff",
   "scripts": {
-    "test": "python3 -m unittest discover -s tests -v",
-    "test:browser": "node tests/browser.mjs",
-    "test:exploration": "node tests/exploration.mjs",
-    "test:reviews": "node tests/reviews.mjs",
-    "test:suite": "node tests/suite.mjs",
-    "test:all-browser": "node tests/all-browser.mjs",
-    "test:chatgpt": "python3 -m unittest discover -s plugins/riff-chatgpt/tests -p 'test_*.py' -v && node plugins/riff-chatgpt/tests/bridge.test.cjs",
-    "test:chatgpt-browser": "python3 plugins/riff-chatgpt/scripts/build_ui.py --riff-web web && node plugins/riff-chatgpt/tests/browser.test.cjs"
+    "test": "python3 -B -m unittest discover -s plugins/riff-chatgpt/tests -p 'test_*.py' -v && python3 -B -m unittest discover -s plugins/riff-chatgpt/packaging -p 'test_*.py' -v && node --test plugins/riff-chatgpt/tests/bridge.test.cjs",
+    "build:ui": "python3 plugins/riff-chatgpt/scripts/build_ui.py --riff-web riff/web",
+    "test:browser": "npm run build:ui && node plugins/riff-chatgpt/tests/browser.test.cjs"
   },
   "devDependencies": {
     "playwright": "1.58.2"

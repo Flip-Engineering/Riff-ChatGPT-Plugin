@@ -20,8 +20,11 @@ import sys
 import tarfile
 import tempfile
 
-ROOT = Path(__file__).resolve().parent.parent
-PLUGIN = ROOT / "plugins/riff-chatgpt"
+PROJECT = Path(__file__).resolve().parent.parent
+PLUGIN = PROJECT / "plugins/riff-chatgpt"
+sys.path.insert(0, str(PLUGIN / "scripts"))
+from riff_dependency import riff_root
+ROOT = riff_root()
 
 
 def sha(path):
@@ -248,7 +251,7 @@ def build(args):
         if relative.parts[0] not in {"tests", ".github", "site", "desktop"}:
             copy_file(file, package / "riff" / relative)
     ui_builder = module(PLUGIN / "scripts/build_ui.py", "riff_ui_bundle")
-    ui_builder.build(package / "riff/web", package / "dist/studio.html")
+    ui_builder.build(ROOT / "web", package / "dist/studio.html")
     copy_tree(args.python_build / "python", package / "runtime/python")
     # Riff serves a web studio. The unused Tk extension requires an X11/Tk
     # desktop installation on Linux, which is not part of this local MCP app.
@@ -279,8 +282,8 @@ def build(args):
         "Writing can use ChatGPT, phrases, or an OpenRouter provider configured in the studio. This package does not include the MLX writer. "
         "On Linux, credentials remain in memory for the session when an OS keyring is unavailable. "
         "On macOS they use a separate Riff ChatGPT Keychain service.\n\n"
-        "Documentation and validation status: https://github.com/Flip-Engineering/riff/tree/codex/chatgpt-riff-plugin/plugins/riff-chatgpt\n"
-        "Runtime build and support details: https://github.com/Flip-Engineering/riff/blob/codex/chatgpt-riff-plugin/docs/chatgpt-plugin-runtime.md\n\n"
+        "Documentation and validation status: https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin\n"
+        "Runtime build and support details: https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/blob/main/docs/chatgpt-plugin-runtime.md\n\n"
         "The bundle-manifest.json and notices/ receipts describe these exact package bytes. "
         "Actual host registration and native performance are separate from package and protocol validation.\n"
     )
@@ -299,7 +302,9 @@ def build(args):
     config = {"schema": "riff.chatgpt.runtime.v1", "platform": target,
               "backend": "metal" if target == "macos-arm64" else "cpu",
               "plugin_version": version, "riff_version": (ROOT / "VERSION").read_text().strip(),
-              "base_commit": current, "source_has_local_changes": changed,
+              "base_commit": current, "riff_commit": current,
+              "plugin_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=PROJECT, text=True).strip(),
+              "source_has_local_changes": changed,
               "cpu_features": proof["cpu_features"] if sys.platform == "linux" else [],
               "system_libraries": libraries, "native": proof,
               "glibc_build_host": platform.libc_ver()[1] if sys.platform == "linux" else None,

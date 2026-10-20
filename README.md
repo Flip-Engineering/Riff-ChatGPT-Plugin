@@ -1,141 +1,31 @@
-# Riff
+# Riff ChatGPT Plugin
 
-A generative music studio by **Flip Engineering**, powered by YuE2 and audio.cpp.
-Start with a feeling, a lyric sheet, a score, or an empty page. Make short studies,
-shape the composition, and collect the takes you want to keep.
+The complete Riff studio inside a local ChatGPT/MCP plugin. This repository is downstream of [Riff](https://github.com/Flip-Engineering/riff); it does not maintain a fork of the generation engine or studio.
 
-Current implementation, research and creative work is tracked in the
-[Riff project todo](docs/project-todo.md).
+## Source and dependency
 
-![Riff writing and listening studio](docs/studio.png)
+Extracted from [Riff PR #32](https://github.com/Flip-Engineering/riff/pull/32), source commit `cd98f3f4191c2b1356d6048bfe44b3848d31cb2d`. Its full Git ancestry is preserved so original authorship and the original integration remain inspectable. The extraction commit removes upstream implementation files from this repository's working tree.
 
-## Install
-
-[Get Riff](https://flip-engineering.github.io/riff/)
-
-The Apple Silicon desktop installer is available in the release assets. Its flow is **open Riff
-Setup → Install → Open Riff**. It includes the application runtime, Metal engine,
-media tools and local writer, downloads the required models with resumable
-progress, and adds Riff to Applications. Subsequent updates belong to the app.
-Web previews use ad-hoc signatures. Organization signing and notarization remain
-separate improvements; available builds appear in the release assets.
-
-The current source distribution supports Apple Silicon Metal, Linux NVIDIA CUDA,
-and CPU. Developer setup and the existing source installer are documented in
-[installation and updates](docs/install.md). See [desktop delivery](desktop/README.md)
-for packaging and acceptance details.
-
-**Model terms:** Riff's application code is MIT licensed. The separately downloaded
-[YuE2 weights use CC BY-NC 4.0](https://huggingface.co/m-a-p/YuE2-3B).
-The application license does not change the model's terms.
-
-## ChatGPT plugin
-
-The [Riff ChatGPT plugin](plugins/riff-chatgpt/README.md) packages the complete
-visual studio, native runtime and media tools for a local MCP Apps host. The
-studio shares a revisioned draft with ChatGPT and retains scores, LoRAs,
-listening, comparison and exports. Platform packages manage their own model
-downloads and persistent workspace. See the plugin documentation for host
-requirements, build artifacts and the distinction between local execution and
-a hosted ChatGPT web integration.
-
-## Make, listen, refine
-
-- **An open starting point.** Free play, instrumental direction, supplied lyrics,
-  or an original surprise song. Hold the words or sound while exploring the other.
-  Write with optional local AI, OpenRouter, or instant phrase suggestions.
-  AI writers work with the complete generation recipe: words, sound, score,
-  planning, sampling and acoustic controls. Variations include the source score
-  and listening notes; the result fills editable controls with a complete Undo.
-- **Composition.** Generate YuE2's symbolic plan before rendering music. Edit its
-  melody and harmony in a score workspace, change tempo/meter/key, transpose, edit
-  notes, audition tones, and import/export ABC or MIDI. Describe a musical change
-  to an optional OpenRouter composer and preview its proposed score. Reuse an
-  unchanged score directly; editing its notation starts a new composition input,
-  and Undo restores the original attachment.
-- **Short studies.** Select a few lyric lines and try a brief take while retaining
-  the full draft. Duration and quality shortcuts stay editable.
-- **Compare takes.** Switch A/B at the same listening position, loop a passage,
-  and see which musical inputs changed. Reorder waiting takes with keyboard controls.
-- **Shape a performance.** Save its phrasing and score before rendering audio,
-  or return to a completed stage after an interruption. Explore acoustic variations
-  from the same performance, with an editable draft and undo. Once synthesis is
-  saved, **Finish audio** completes the recording without repeating it. Open
-  **Audio refinement** to adjust the decoder while keeping the music and seed.
-- **Granular control.** Melody/chord planning, supplied ABC, guidance, seeds,
-  semantic and planning sampling, repetition controls, acoustic solver steps,
-  and a multistep synthesis method that reuses earlier velocity estimates.
-  Blank optional controls retain the runtime defaults.
-- **Listening and library.** Playback, seeking, a measured waveform, sculptural seed
-  artwork with an immersive sound view, favorites, notes, search, reversible archiving,
-  and animated MP4, WAV, and PNG artwork exports. Share a complete song or a marked
-  passage with its living artwork, with 4K/60 fps export and editable framing. Adjust
-  surface, movement, color and texture in the sound view. Restore
-  any recording's recipe and make a variation.
-- **Producer review.** Optional direct audio review through OpenRouter, informed
-  by the recording's recipe and actual YuE2 score. Each review returns a complete
-  recommended take: lyrics, direction, score, duration, seed, and sampling settings.
-  Generate it directly, edit it in the studio, or export the recipe. The default model is
-  `google/gemini-3.8-flash`; the studio never silently substitutes a model.
-  Producer variations retain the source seed and can reuse the saved score,
-  performance or synthesis; the corresponding controls remain editable.
-- **Saved sounds.** Browse, create, edit, and remove reusable sound prompts.
-- **Learned style adapters.** Browse public YuE2-3B LoRAs on Hugging Face, hear
-  their demo clips, inspect compatibility and licenses, or import a local
-  safetensors file. Choose independent composition (AR) and sound (NAR)
-  strengths. Each take keeps its exact adapter revision and file hashes.
-  See [using adapters](docs/adapters.md), the [library API](docs/loras-api.md),
-  and the [validation scope](docs/lora-validation.md).
-- **Keep creating.** The desktop runtime can write a new idea while music renders
-  when memory permits. Each operation keeps its own progress and cancellation.
-
-![Composition workspace](docs/composition.png)
-
-Lyrics, structure, and musical direction are optional. A score guides generation;
-its notes and timings are not a promise of exact audio reproduction. Instrumental
-requests can still produce vocal textures. [Model capabilities](docs/capabilities.md)
-describes the controls and current runtime boundaries.
-
-## Connections and storage
-
-Open **Review settings** to save an OpenRouter key and select a model. Keys use
-macOS Keychain or Linux Secret Service (`secret-tool`); there is no plaintext key
-fallback. Requests send only the material described beside the action. Provider
-usage charges apply. Audio review directly assesses music; no ASR pipeline runs.
-
-Installed releases keep the library, models and recordings in a persistent
-workspace outside versioned app files. Updates are verified and staged before
-activation. Automatic checks are enabled; preparing updates while idle is opt-in.
-Source checkouts remain under Git control. Back up the workspace's `data/` and
-`outputs/` together; credentials are managed separately by the OS.
-
-## Run from source
+Riff is a Git submodule at `riff/`, locked in `upstream.lock.json` to `b7ab93cf22ffd9e95a7718aca2e0d451578411b1`, the merge of standalone LoRA PR #28. This plugin owns MCP tools, the ChatGPT bridge and UI integration, shared drafts/settings, plugin metadata, packaging and host acceptance tests. Upstream Riff owns generation, LoRAs, recordings, the studio and native/control/media source pins.
 
 ```sh
-git clone https://github.com/Flip-Engineering/riff.git
-cd riff
-python3 studio.py
+git clone --recurse-submodules https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin.git
+cd Riff-ChatGPT-Plugin
+npm ci
+npx playwright install chromium
+./scripts/validate.sh
 ```
 
-Core studio operation uses Python's standard library and static web assets; it
-needs no frontend build or npm installation. Start setup from the app, or run:
+Validation needs Python 3.10+, Node.js, Chromium and FFmpeg/FFprobe. Run it on the homelab with `TMPDIR` and the checkout on NVMe. No hosted compute is required. Python runtime packaging remains separately pinned for user distributions.
 
-```sh
-python3 setup_engine.py --backend metal  # or cuda / cpu
-python3 run.py --free --steps 8 --max-seconds 28
-```
+## Run and package
 
-The optional Apple Silicon writer is installed with `./setup-writer.sh` using
-`uv`. OpenRouter writing and phrase suggestions work on both supported platforms.
+See [plugin usage](plugins/riff-chatgpt/README.md) and [runtime packaging](docs/chatgpt-plugin-runtime.md). Build the UI with `npm run build:ui`. For development, start `plugins/riff-chatgpt/server/main.py --riff-root "$PWD/riff" --workspace /absolute/private/workspace --ui-file "$PWD/plugins/riff-chatgpt/dist/studio.html"`.
 
-Q4 weights, memory mapping, direct cache writes and explicit graph lifetimes
-reduce native inference memory. Earlier 12–30 second M4 previews measured around
-2.7 GiB of process footprint. A 201.5-second saved-performance render measured
-3.39 GB after the synthesis cache rewrite, down from 6.59 GB with identical audio.
-Fresh generation also includes semantic sampling and needs more memory; its full
-input baseline measured 10.41 GB. The engine exits after each take.
-[Validation](docs/validation.md) records the settings and separates inference
-measurements from build and browser checks.
+Builders under `plugins/riff-chatgpt/packaging/` consume the verified Riff submodule. `scripts/package_chatgpt_plugin.py` assembles the plugin-owned integration plus the curated pinned upstream runtime. Package receipts identify both the plugin commit and Riff commit. The complete studio and LoRA workflow are retained.
 
-See [contributing](CONTRIBUTING.md), [design](DESIGN.md), and
-[third-party notices](NOTICE.md).
+Update Riff by checking out a reviewed upstream revision inside `riff/`, updating `upstream.lock.json`, running validation and committing both pins together. Builders reject mismatched revisions and tracked changes. The UI adapter checks exact integration points and refuses incompatible upstream UI changes.
+
+## Delivery status
+
+Repository extraction and source integration do not constitute a published ChatGPT installation. [Historical validation](docs/chatgpt-plugin-validation.md) records pre-extraction evidence; fresh downstream results are tracked separately in [extraction validation](docs/downstream-validation.md). Platform package builds, real model inference, Apple Silicon behavior and actual ChatGPT host installation must each be reported independently. Music weights are downloaded separately under their own terms.

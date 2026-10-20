@@ -13,10 +13,14 @@ from pathlib import Path
 import platform
 import shutil
 import subprocess
+import sys
 import tarfile
 import urllib.request
 
-REPO = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from riff_dependency import riff_root
+
+REPO = riff_root()
 
 
 def sha(path):

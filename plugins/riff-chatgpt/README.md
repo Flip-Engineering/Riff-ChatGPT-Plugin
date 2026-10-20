@@ -98,7 +98,7 @@ current test counts, browser scope and an actual packaged YuE2 render receipt.
 Run these commands from the repository root:
 
 ```sh
-python3 plugins/riff-chatgpt/scripts/build_ui.py --riff-web web
+python3 plugins/riff-chatgpt/scripts/build_ui.py --riff-web riff/web
 python3 -m unittest discover -s plugins/riff-chatgpt/tests -p 'test_*.py' -v
 python3 -m unittest discover -s plugins/riff-chatgpt/packaging -p 'test_*.py' -v
 node plugins/riff-chatgpt/tests/bridge.test.cjs
@@ -119,7 +119,7 @@ To inspect the real source adapter without a platform package:
 
 ```sh
 python3 plugins/riff-chatgpt/server/main.py \
-  --riff-root "$PWD" \
+  --riff-root "$PWD/riff" \
   --workspace /absolute/path/to/a/separate/riff-plugin-workspace \
   --ui-file "$PWD/plugins/riff-chatgpt/dist/studio.html"
 ```

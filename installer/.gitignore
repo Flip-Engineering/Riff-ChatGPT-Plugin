@@ -1,8 +1,0 @@
-/_build/
-/deps/
-/erl_crash.dump
-/cover/
-/ui-test-results/
-/priv/native/riff-file-lock
-/priv/desktop/
-__pycache__/
