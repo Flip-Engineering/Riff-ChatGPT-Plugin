@@ -389,16 +389,17 @@
 
     async downloadLink(anchor) {
       const path = anchor.getAttribute("href") || "";
-      await this.ready;
       const recording = /^\/api\/tracks\/([a-f0-9]{32})\/audio(?:\?download=1)?$/.exec(path);
       if (recording && !this.hostCapabilities.downloadFile) {
         // Chat's optional file upload API rejects WAV files. Keep the original
         // recording in its native workspace and request the supported Library
         // export from this conversation instead of relabeling its bytes.
         const prompt = `Export the complete original WAV for Riff recording ${recording[1]} from the current paired Riff cloud workspace to my ChatGPT Library and provide downloadable audio. Do not generate music or change the draft. If this conversation cannot access that workspace, explain the error instead of claiming an export.`;
-        this.emit("export-request", { trackId: recording[1], prompt });
-        return { preparedForChat: true };
+        await this.message(prompt);
+        this.emit("chat-requested", { trackId: recording[1] });
+        return { sentToChat: true };
       }
+      await this.ready;
       let blob, name = anchor.download || "";
       if (path.startsWith("/api/")) {
         if (/^\/api\/tracks\/[a-f0-9]{32}\/recipe$/.test(path)) {
@@ -469,14 +470,14 @@
     }
 
     async message(text) {
-      await this.ready;
       if (typeof text !== "string" || text.length > 65536) throw new Error("The message is too large.");
-      // Chat exposes its documented follow-up extension alongside MCP Apps.
-      // Its shared ui/message request remained pending in actual host testing.
-      // Pick one supported path before sending; never retry across both APIs.
+      // Chat requires this call in the synchronous user-event stack. Even
+      // awaiting an already-resolved ready promise loses that authorization.
+      // Choose one transport; never replay a message through a second API.
       if (typeof this.win.openai?.sendFollowUpMessage === "function") {
         return this.win.openai.sendFollowUpMessage({ prompt: text });
       }
+      await this.ready;
       const result = await this.request("ui/message", { role: "user", content: [{ type: "text", text }] });
       if (result?.isError) throw new Error("ChatGPT could not receive this writing request.");
       return result;

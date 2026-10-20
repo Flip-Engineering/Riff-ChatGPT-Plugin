@@ -502,3 +502,21 @@ run or saving a duplicate Library file. This host denied the clipboard API;
 the dialog kept the complete text selected and displayed the keyboard-copy
 instruction, rather than falsely reporting that it had copied or sent anything.
 The full Studio was left open. Automatic host file/message delivery remains #4.
+
+
+### 0.4.6: automatic panel follow-up
+
+The earlier manual handoff is superseded. Live inspection showed ChatGPT's
+follow-up extension requires a synchronous user event. Riff previously awaited
+initialization, shared-draft saves and context updates before sending, which
+lost that authorization. A direct trusted-click test in Chat produced
+`PANEL_HANDOFF_OK` without a pasted message.
+
+The studio now invokes the documented sendFollowUpMessage API before any await.
+Writing includes the current editor snapshot and expected shared revision in the
+request; ChatGPT saves its result with that revision, and the studio applies it
+if the artist has not edited further. Reviews include the recording ID and
+focus, and WAV export requests publication of the original cloud-workspace file.
+No message is retried through another transport after an uncertain result.
+Browser acceptance enforces the trusted-event requirement on writing, inspiration
+and review controls. Native inference, model storage and pairing are unchanged.

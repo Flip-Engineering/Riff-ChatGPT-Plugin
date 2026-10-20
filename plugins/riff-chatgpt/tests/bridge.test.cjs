@@ -254,26 +254,30 @@ test('Chat file export does not replay rejected uploads or announce failed downl
   assert.equal(opened, 0); assert.deepEqual(events, []); b.close();
 });
 
-test('WAV export prepares a conversation request without sending a stalled host message', async () => {
-  const h = mockWindow(() => ({})), b = new RiffBridge(h.win); await b.ready;
+test('WAV export sends its Chat request within the original click stack', async () => {
+  const h = mockWindow(), b = new RiffBridge(h.win); await b.ready;
   b.hostCapabilities = {};
-  const events = []; b.on('export-request', value => events.push(value));
-  const result = await b.downloadLink({ getAttribute: () => `/api/tracks/${id}/audio?download=1` });
-  assert.deepEqual(result, { preparedForChat: true });
-  assert.equal(events.length, 1);
-  assert.equal(events[0].trackId, id);
-  assert(events[0].prompt.includes(id));
-  assert(events[0].prompt.includes('Do not generate music or change the draft.'));
-  assert.equal(h.sent.some(x => x.message.method === 'ui/message'), false);
+  let inClick = true; const calls = [];
+  h.win.openai = { sendFollowUpMessage: async input => {
+    assert(inClick, 'Follow-up must precede every await'); calls.push(input);
+  } };
+  const delivery = b.downloadLink({ getAttribute: () => `/api/tracks/${id}/audio?download=1` });
+  inClick = false;
+  assert.equal(calls.length, 1);
+  assert.deepEqual(await delivery, { sentToChat: true });
+  assert(calls[0].prompt.includes(id));
+  assert(calls[0].prompt.includes('Do not generate music or change the draft.'));
   assert.equal(h.sent.some(x => x.message.method === 'tools/call'), false); b.close();
 });
 
-test('Chat follow-up extension sends once without duplicating the shared message request', async () => {
+test('Chat follow-up is synchronous and never replayed through another transport', async () => {
   const h = mockWindow(), b = new RiffBridge(h.win); await b.ready;
-  const calls=[];
-  h.win.openai={sendFollowUpMessage:async input=>{calls.push(input);}};
-  await b.message('Export the original WAV');
+  let inClick = true; const calls=[];
+  h.win.openai={sendFollowUpMessage:async input=>{assert(inClick);calls.push(input);}};
+  const delivery = b.message('Export the original WAV');
+  inClick = false;
   assert.deepEqual(calls,[{prompt:'Export the original WAV'}]);
+  await delivery;
   assert.equal(h.sent.some(x=>x.message.method==='ui/message'),false);
   h.win.openai.sendFollowUpMessage=async()=>{throw new Error('Follow-up rejected');};
   await assert.rejects(b.message('Try an export'),/Follow-up rejected/);

@@ -80,20 +80,26 @@ test('complete original Riff studio through production ManagedRiff and stdio MCP
     await app.waitForFunction(() => document.querySelector('#title').value === 'ChatGPT revised title');
     check('Draft saves round-trip to SQLite; agent edits sync; concurrent local edits produce a recoverable conflict');
 
+    await app.evaluate(() => {
+      window.openai = { sendFollowUpMessage(input) {
+        if (!window.event?.isTrusted) throw new Error('Follow-up lost its synchronous user event');
+        return RiffHost.request('ui/message', { role: 'user', content: [{ type: 'text', text: input.prompt }] });
+      } };
+    });
     await app.locator('#riff-share-context').click();
     await app.evaluate(() => RiffHost.fullscreen());
     await app.locator('#riff-write-with-chatgpt').click();
     await app.locator('#riff-writing-request').fill('Write a more hopeful chorus.');
     await app.locator('#riff-chatgpt-writing button[type=submit]').click();
-    await app.locator('#riff-chat-request').waitFor({ state: 'visible' });
-    assert((await app.locator('#riff-chat-request-text').inputValue()).includes('hopeful chorus'));
+    await app.waitForFunction(() => document.querySelector('#riff-chatgpt-status').textContent.includes('Request sent'));
     const chat = await page.evaluate(() => ({ messages: hostMessages, contexts: hostContexts, trace: hostTrace }));
-    assert.equal(chat.messages.length, 0);
+    assert.equal(chat.messages.length, 1);
+    assert(chat.messages[0].content[0].text.includes('hopeful chorus'));
+    assert(chat.messages[0].content[0].text.includes('ChatGPT revised title'));
     assert(chat.contexts.some(x => x.content?.[0]?.type === 'text'));
-    assert(chat.contexts.some(x => x.structuredContent?.recipe && !x.content));
     assert(chat.trace.some(x => x.method === 'ui/request-display-mode'));
-    await app.locator('#riff-chat-request button').filter({ hasText: 'Close' }).click();
-    check('ChatGPT writing prepares a visible request without a stalled host message; draft context and fullscreen use host protocol methods');
+    assert.equal(await app.locator('#riff-chat-request').count(), 0);
+    check('Writing sends immediately within the trusted event, including the editor snapshot and revision');
 
     await app.locator('#system-open').click();
     assert.equal(await app.locator('#setup-engine').textContent(), 'Download music models');
@@ -176,14 +182,12 @@ test('complete original Riff studio through production ManagedRiff and stdio MCP
     await app.locator('#producer-panel').evaluate(node => node.open = true);
     await app.locator('#review-focus').fill('Listen for the balance of the melody and accompaniment.');
     await app.locator('#request-review').click();
-    await app.locator('#riff-chat-request').waitFor({ state: 'visible' });
-    assert((await app.locator('#riff-chat-request-text').inputValue()).includes('Review this Riff recording'));
-    await app.locator('#riff-chat-request button').filter({ hasText: 'Close' }).click();
+    await page.waitForFunction(() => hostMessages.length === 2);
+    assert((await page.evaluate(() => hostMessages[1].content[0].text)).includes('Review this Riff recording'));
     await app.locator('#idea-engine').selectOption('chatgpt');
     await app.locator('#surprise').click();
-    await app.locator('#riff-chat-request').waitFor({ state: 'visible' });
-    assert((await app.locator('#riff-chat-request-text').inputValue()).includes('Write or revise this Riff draft'));
-    await app.locator('#riff-chat-request button').filter({ hasText: 'Close' }).click();
+    await page.waitForFunction(() => hostMessages.length === 3);
+    assert((await page.evaluate(() => hostMessages[2].content[0].text)).includes('Write or revise this Riff draft'));
     assert.equal(await page.evaluate(() => hostTrace.some(x => x.path?.includes('/api/review/models'))), false);
     check('Writing and reviews route to the current ChatGPT session without OpenRouter settings or a separate local writer');
 

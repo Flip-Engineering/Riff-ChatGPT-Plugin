@@ -225,7 +225,7 @@ def run(args):
             check(PROTOCOL in discovered["supportedVersions"], "Current protocol was not discovered.")
             tools = client.rpc("tools/list")["tools"]
             check(len(tools) >= 18, "Full plugin tools are missing.")
-            resource = client.rpc("resources/read", {"uri": "ui://riff/studio/adapter-v0.2.6.html"})["contents"][0]
+            resource = client.rpc("resources/read", {"uri": "ui://riff/studio/adapter-v0.2.7.html"})["contents"][0]
             check('id="lyrics"' in resource["text"] and "RiffHost" in resource["text"], "Original UI/host bridge is missing.")
             evidence["tool_count"] = len(tools)
             evidence["ui_bytes"] = len(resource["text"].encode())

@@ -199,17 +199,19 @@ Binary transport results belong in files. For app-only audio/media chunks,
 pass `--output-file /absolute/private/result.json` and decode `_meta` into a
 file with Python; stdout deliberately omits these binary values. Prefer the
 workspace's original output files for Library publication. Do not paste base64,
-keys or audio bytes into the conversation. Optional provider-backed reviews
-require the user's configured provider and must not substitute for listening.
+keys or audio bytes into the conversation. Reviews use this ChatGPT session and require access to the actual audio before listening claims.
 
 For reproducibility, preserve the returned recipe, seed, model/LoRA identity,
 job, recording and source receipt alongside exported music when requested.
 
-Actual Chat file uploads currently reject WAV, ABC and MIDI, and a component
-follow-up message may stall even when its API returns. The studio prepares a
-visible, copyable request for the user to paste into Chat instead of sending
-through that unreliable path. Do not report Library publication from a panel
-status alone. When asked in a normal conversation,
+Studio writing, reviews and WAV export send a component follow-up directly to
+this conversation. Writing includes the current editor snapshot and its shared
+revision. Use that snapshot, preserve unrelated settings, and save the result
+with riff_save_draft using that expected_revision. If the shared revision has
+changed, explain the conflict rather than overwriting newer work. A no-change
+request should preserve every recipe field. Do not generate music unless asked.
+
+Chat file uploads reject WAV, ABC and MIDI. For an export follow-up,
 publish the original workspace files through an available documented host
 file-output tool, reconcile any uncertain earlier save first, and verify the
 recording is available to play or download. Do not add audio checksum chores
