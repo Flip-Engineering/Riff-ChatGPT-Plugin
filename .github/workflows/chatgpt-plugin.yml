@@ -37,13 +37,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: ubuntu-24.04
+          - runner: '["self-hosted","Linux","X64","baton2-native-linux-x64"]'
             platform: linux-x86_64
             backend: cpu
-          - runner: macos-15
+          - runner: '["self-hosted","macOS","ARM64"]'
             platform: macos-arm64
             backend: metal
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ fromJSON(matrix.runner) }}
     timeout-minutes: 120
     defaults:
       run:
@@ -77,19 +77,32 @@ jobs:
           echo "RIFF_PLUGIN_BUILD=$build_directory" >> "$GITHUB_ENV"
           echo "SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)" >> "$GITHUB_ENV"
 
-      - name: Install Linux build dependencies
+      - name: Verify provisioned Linux build dependencies
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config nasm zlib1g-dev python3-venv libncurses-dev libssl-dev
+          set -euo pipefail
+          for package in build-essential pkg-config nasm zlib1g-dev python3-venv libncurses-dev libssl-dev; do
+            test "$(dpkg-query -W -f='${db:Status-Status}' "$package" 2>/dev/null || true)" = installed
+          done
 
       - name: Check macOS build dependencies
         if: runner.os == 'macOS'
         run: |
-          command -v pkg-config || brew install pkgconf
+          command -v pkg-config
           xcrun --find clang
           xcrun --find metal
 
+      - name: Identify the self-hosted Ubuntu image
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          case "$ID:$VERSION_ID" in
+            ubuntu:22.04) echo 'ImageOS=ubuntu22' >> "$GITHUB_ENV" ;;
+            ubuntu:24.04) echo 'ImageOS=ubuntu24' >> "$GITHUB_ENV" ;;
+            ubuntu:26.04) echo 'ImageOS=ubuntu26' >> "$GITHUB_ENV" ;;
+            *) echo "Unsupported self-hosted BEAM target: $ID:$VERSION_ID" >&2; exit 1 ;;
+          esac
       - name: Set up the pinned control toolchain
         uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         with:

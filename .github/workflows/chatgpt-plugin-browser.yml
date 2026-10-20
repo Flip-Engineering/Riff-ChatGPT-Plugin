@@ -24,7 +24,7 @@ concurrency:
 jobs:
   browser:
     name: ChatGPT browser acceptance
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64, baton2-native-linux-x64]
     timeout-minutes: 15
     steps:
       - name: Check out the plugin source
@@ -41,13 +41,14 @@ jobs:
       - name: Install JavaScript dependencies
         run: npm ci
 
-      - name: Install FFmpeg
+      - name: Verify provisioned browser dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-
+          set -euo pipefail
+          for package in ffmpeg build-essential pkg-config nasm zlib1g-dev python3-venv libncurses-dev libssl-dev; do
+            test "$(dpkg-query -W -f='${db:Status-Status}' "$package" 2>/dev/null || true)" = installed
+          done
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Exercise the original studio through the MCP app host
         run: npm run test:chatgpt-browser
