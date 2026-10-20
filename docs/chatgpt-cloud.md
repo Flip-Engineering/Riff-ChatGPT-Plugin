@@ -111,8 +111,10 @@ Those remain available conversationally through the adapter. Full studio
 navigation and editing require the registered MCP UI transport described above;
 bundling the studio alone does not establish it.
 
-The installed Visualize helper documents and enforces a **1,000,000-byte HTML
-fragment limit**. Version 0.3.3 preserves the exact embedded WAV when it fits;
+The installed Visualize helper requires an **HTML fragment**, and documents and
+enforces a **1,000,000-byte fragment limit**. The export omits document wrappers
+so it can use the host's source-path registration/display workflow unchanged.
+Version 0.3.3 preserves the exact embedded WAV when it fits;
 larger recordings use a clearly labeled 128 kbit/s MP3 preview created with the
 bundled FFmpeg. Preview duration follows from the remaining fragment capacity,
 including actual encoder overhead. All original motion frames are gzip-compressed

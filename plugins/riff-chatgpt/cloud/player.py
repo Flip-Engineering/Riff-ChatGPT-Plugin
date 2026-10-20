@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export an actual Riff recording as a self-contained HTML player for Chat.
+"""Export an actual Riff recording as a self-contained HTML fragment for Chat.
 
 Uses the pinned upstream artwork renderer and motion interpolation unchanged.
 This is a recording view; it does not pretend to connect studio controls.
@@ -48,52 +48,52 @@ def build_player(bundle, track, motion, audio, output, panel_max_bytes=1_000_000
                'receipt': receipt, 'preview': False, 'audioMime': 'audio/wav',
                'audio': base64.b64encode(audio).decode('ascii')}
     title = html.escape(str(track.get('title') or 'Riff recording'))
-    page = '''<!doctype html><html lang="en"><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>__TITLE__ · Riff</title>
-<style>
-:root{color-scheme:light dark;font:15px/1.5 system-ui,sans-serif;background:#edf0ec;color:#24352f}
-body{margin:0;padding:20px}main{max-width:840px;margin:auto}header{display:flex;justify-content:space-between;gap:16px;align-items:baseline}
-h1{font-size:22px;font-weight:500;letter-spacing:-.03em;margin:4px 0}p{margin:4px 0 16px;color:#53665c}
-canvas{display:block;width:100%;height:clamp(220px,45vw,440px);border-radius:16px;background:#e0e7e0}
-audio{display:block;width:100%;margin:16px 0 8px}footer{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:13px}
-a{color:inherit}details{font-size:12px;margin-top:18px}pre{white-space:pre-wrap;overflow-wrap:anywhere}
-@media(prefers-color-scheme:dark){:root{background:#17221e;color:#dce5de}p{color:#a7b9ad}}
-</style><main><header><h1>__TITLE__</h1><span>RIFF</span></header>
+    root_id = 'riff-player-'+hashlib.sha256(str(track['id']).encode()).hexdigest()
+    # Visualize accepts a fragment; its host supplies the document wrapper.
+    page = '''<style>
+#__ROOT_ID__{color-scheme:light dark;font:15px/1.5 system-ui,sans-serif;background:#edf0ec;color:#24352f;padding:20px;max-width:840px;margin:auto;border-radius:16px}
+#__ROOT_ID__ header{display:flex;justify-content:space-between;gap:16px;align-items:baseline}
+#__ROOT_ID__ h1{font-size:22px;font-weight:500;letter-spacing:-.03em;margin:4px 0}#__ROOT_ID__ p{margin:4px 0 16px;color:#53665c}
+#__ROOT_ID__ canvas{display:block;width:100%;height:clamp(220px,45vw,440px);border-radius:16px;background:#e0e7e0}
+#__ROOT_ID__ audio{display:block;width:100%;margin:16px 0 8px}#__ROOT_ID__ footer{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:13px}
+#__ROOT_ID__ a{color:inherit}#__ROOT_ID__ details{font-size:12px;margin-top:18px}#__ROOT_ID__ pre{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(prefers-color-scheme:dark){#__ROOT_ID__{background:#17221e;color:#dce5de}#__ROOT_ID__ p{color:#a7b9ad}}
+</style><main id="__ROOT_ID__"><header><h1>__TITLE__</h1><span>RIFF</span></header>
 <p>Recording player · Original Riff sound visualization</p>
 <canvas id="visualizer" aria-label="Riff audio-reactive artwork"></canvas>
 <audio id="audio" controls preload="auto"></audio>
 <footer><label><input id="loop" type="checkbox"> Loop</label><a id="download" download="riff-recording.wav">Download WAV</a><label id="full-file-label" hidden>Open full WAV<input id="full-file" type="file" accept="audio/wav,.wav"></label><span id="status" role="status">Loading recording…</span></footer>
-<p id="mode" style="font-size:12px;margin-top:18px">This saved recording plays inside this panel. Ask Riff in Chat to compose, manage the library or change LoRAs.</p>
-<details><summary>Recording receipt</summary><pre id="receipt"></pre></details></main>
-<script id="riff-player-data" type="application/json">__DATA__</script>
-<script>__ARTWORK__
+<p id="mode" style="font-size:12px;margin-top:18px">Original WAV</p>
+<details><summary>Recording receipt</summary><pre id="receipt"></pre></details>
+<script data-player-data type="application/json">__DATA__</script></main>
+<script>(()=>{__ARTWORK__
 const settledMotion = new WeakMap();
 __INTERPOLATION__
 async function initialize(){
-const data=JSON.parse(document.getElementById('riff-player-data').textContent);
+const root=document.getElementById(__ROOT_JSON__);
+const data=JSON.parse(root.querySelector('[data-player-data]').textContent);
 const unpacked=new Blob([Uint8Array.from(atob(data.motionGzip),c=>c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream('gzip'));
 const motion=JSON.parse(await new Response(unpacked).text());
-const audio=document.getElementById('audio'),canvas=document.getElementById('visualizer');
+const audio=root.querySelector('#audio'),canvas=root.querySelector('#visualizer');
 const raw=Uint8Array.from(atob(data.audio),c=>c.charCodeAt(0));
 let url=URL.createObjectURL(new Blob([raw],{type:data.audioMime}));
-audio.src=url;document.getElementById('download').href=url;
+audio.src=url;root.querySelector('#download').href=url;
 if(data.preview){
-  document.getElementById('full-file-label').hidden=false;
-  document.getElementById('mode').textContent='Embedded MP3 preview · The full original WAV is saved separately in Library. Download it, then choose Open full WAV here for full-length playback and visualization.';
-  document.getElementById('download').textContent='Download preview';document.getElementById('download').download='riff-preview.mp3';
+  root.querySelector('#full-file-label').hidden=false;
+  root.querySelector('#mode').textContent='MP3 preview · Full original WAV in Library';
+  root.querySelector('#download').textContent='Download preview';root.querySelector('#download').download='riff-preview.mp3';
 }
-document.getElementById('full-file').addEventListener('change',async e=>{
+root.querySelector('#full-file').addEventListener('change',async e=>{
   const file=e.target.files[0];if(!file)return;
   const bytes=await file.arrayBuffer();
   const digest=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(x=>x.toString(16).padStart(2,'0')).join('');
-  if(digest!==data.receipt.audio_sha256){document.getElementById('status').textContent='That file does not match this recording’s receipt.';return}
+  if(digest!==data.receipt.audio_sha256){root.querySelector('#status').textContent='That file does not match this recording’s receipt.';return}
   audio.pause();URL.revokeObjectURL(url);url=URL.createObjectURL(new Blob([bytes],{type:'audio/wav'}));audio.src=url;
-  const download=document.getElementById('download');download.href=url;download.download='riff-recording.wav';download.textContent='Download WAV';
-  document.getElementById('mode').textContent='Full original WAV · SHA-256 verified against the recording receipt. Audio stays in this browser panel.';
+  const download=root.querySelector('#download');download.href=url;download.download='riff-recording.wav';download.textContent='Download WAV';
+  root.querySelector('#mode').textContent='Full WAV · SHA-256 verified · Local playback';
 });
-document.getElementById('receipt').textContent=JSON.stringify(data.receipt,null,2);
-document.getElementById('loop').addEventListener('change',e=>audio.loop=e.target.checked);
+root.querySelector('#receipt').textContent=JSON.stringify(data.receipt,null,2);
+root.querySelector('#loop').addEventListener('change',e=>audio.loop=e.target.checked);
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');let frame=null;
 function draw(){
   frame=null;const r=canvas.getBoundingClientRect(),scale=devicePixelRatio||1;
@@ -104,16 +104,18 @@ function draw(){
 }
 function refresh(){if(frame!==null)cancelAnimationFrame(frame);draw()}
 for(const event of ['play','pause','seeked','loadedmetadata','ended'])audio.addEventListener(event,refresh);
-audio.addEventListener('loadedmetadata',()=>document.getElementById('status').textContent=audio.duration.toFixed(3)+' seconds');
-audio.addEventListener('error',()=>document.getElementById('status').textContent='Playback failed: '+(audio.error?.message||'audio decode error'));
+audio.addEventListener('loadedmetadata',()=>root.querySelector('#status').textContent=audio.duration.toFixed(3)+' seconds');
+audio.addEventListener('error',()=>root.querySelector('#status').textContent='Playback failed: '+(audio.error?.message||'audio decode error'));
 document.addEventListener('visibilitychange',refresh);addEventListener('resize',refresh);reduced.addEventListener('change',refresh);
 draw();
 }
-initialize().catch(error=>document.getElementById('status').textContent='Player failed: '+error.message);
-</script></html>'''
+initialize().catch(error=>document.getElementById(__ROOT_JSON__).querySelector('#status').textContent='Player failed: '+error.message);
+})();
+</script>'''
     # A single pass prevents user text resembling a token from being expanded.
     def render():
         values = {'__ARTWORK__': artwork, '__INTERPOLATION__': interpolation,
+                  '__ROOT_ID__':root_id,'__ROOT_JSON__':json.dumps(root_id),
                   '__TITLE__': title, '__DATA__': script(json.dumps(payload, ensure_ascii=False))}
         return re.sub('|'.join(values), lambda match: values[match[0]], page)
     result = render()

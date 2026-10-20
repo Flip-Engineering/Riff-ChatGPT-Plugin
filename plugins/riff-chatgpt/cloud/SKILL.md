@@ -76,7 +76,7 @@ actual native visualization data and original Riff artwork renderer:
 
 ```sh
 python3 /absolute/path/to/this/skill/scripts/player.py \
-  --track-id RECORDING_ID --output /writable/path/riff-player.html
+  --track-id RECORDING_ID --output /workspace/riff-player-RECORDING_ID.html
 ```
 
 Pass the same `--workspace` used for generation if it differs from the default.
@@ -88,6 +88,13 @@ original WAV and receipt to Library too. If the host cannot display HTML, report
 the actual error and provide the HTML file and audio as downloadable fallbacks.
 An HTML file alone is not an opened panel. Verify playback and visualization in
 the displayed panel when browser inspection is available.
+The helper emits an HTML **fragment**, as Visualize requires, with a unique root
+and scoped controls/styles. Keep it in `/workspace` and display it using the
+host's documented absolute-path content reference in the **final response**.
+Do not invent a registration API or save inline fragments to Library. If the user
+requests an HTML download, use the host's documented standalone export wrapper
+and save that separate deliverable. Do not wrap the inline fragment in a full
+`<!doctype>`, `<html>`, `<head>` or `<body>` document before registration.
 
 Visualize's installed helper limits HTML fragments to 1,000,000 bytes. The player
 embeds the exact WAV when it fits. Otherwise it uses bundled FFmpeg to make a

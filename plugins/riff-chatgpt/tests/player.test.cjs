@@ -15,6 +15,7 @@ for (const preview of [false, true]) test(`exported ${preview ? 'budgeted previe
     execFileSync('python3', ['-c', `
 import importlib.util,io,json,math,shutil,struct,sys,wave
 from pathlib import Path
+from html.parser import HTMLParser
 repo,out=map(Path,sys.argv[1:3]);preview=sys.argv[3]=='true'
 spec=importlib.util.spec_from_file_location('player',repo/'plugins/riff-chatgpt/cloud/player.py')
 player=importlib.util.module_from_spec(spec);spec.loader.exec_module(player)
@@ -33,6 +34,10 @@ motion={'fps':10,'frames':[[i/20,.4,.3,.2,0,.2,.5,.1] for i in range(21)]}
 receipt=player.build_player(bundle,track,motion,stream.getvalue(),out/'player.html',60000 if preview else 1000000)
 assert receipt['preview']==preview
 assert receipt['html_bytes']<=(60000 if preview else 1000000)
+class FragmentParser(HTMLParser):
+ def handle_starttag(self,tag,attrs):assert tag not in ('html','head','body')
+ def handle_decl(self,decl):assert not decl.lower().startswith('doctype')
+FragmentParser().feed((out/'player.html').read_text())
 (out/'receipt.json').write_text(json.dumps(receipt))
 `, root, temporary, String(preview)], { stdio: 'pipe' });
     browser = await chromium.launch({ headless: true,
