@@ -6,16 +6,16 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { chromium } = require(process.env.RIFF_PLAYWRIGHT_MODULE || 'playwright');
 
-test('exported recording plays, seeks, loops and animates the pinned artwork without a server', { timeout: 60000 }, async () => {
+for (const preview of [false, true]) test(`exported ${preview ? 'budgeted preview and full-file' : 'exact WAV'} player works without a server`, { timeout: 60000 }, async () => {
   const root = path.resolve(__dirname, '../../..');
   const temporary = mkdtempSync(path.join(os.tmpdir(), 'riff-player-test-'));
   let browser;
   try {
     // A deterministic PCM fixture tests media transport; it is not generated music.
     execFileSync('python3', ['-c', `
-import importlib.util,io,json,math,struct,sys,wave
+import importlib.util,io,json,math,shutil,struct,sys,wave
 from pathlib import Path
-repo,out=map(Path,sys.argv[1:])
+repo,out=map(Path,sys.argv[1:3]);preview=sys.argv[3]=='true'
 spec=importlib.util.spec_from_file_location('player',repo/'plugins/riff-chatgpt/cloud/player.py')
 player=importlib.util.module_from_spec(spec);spec.loader.exec_module(player)
 stream=io.BytesIO()
@@ -24,11 +24,17 @@ with wave.open(stream,'wb') as wav:
  wav.writeframes(b''.join(struct.pack('<h',int(3000*math.sin(i*math.pi/20))) for i in range(16000)))
 bundle=out/'bundle';(bundle/'riff').mkdir(parents=True)
 (bundle/'riff/web').symlink_to(repo/'riff/web',target_is_directory=True)
+(bundle/'runtime/media').mkdir(parents=True)
+if preview:(bundle/'runtime/media/ffmpeg').symlink_to(shutil.which('ffmpeg'))
+(out/'recording.wav').write_bytes(stream.getvalue())
+(out/'wrong.wav').write_bytes(b'wrong recording')
 track={'id':'a'*32,'title':'__DATA__ <script>window.injected=true</script>','recipe':{'seed':'1234'}}
 motion={'fps':10,'frames':[[i/20,.4,.3,.2,0,.2,.5,.1] for i in range(21)]}
-receipt=player.build_player(bundle,track,motion,stream.getvalue(),out/'player.html')
+receipt=player.build_player(bundle,track,motion,stream.getvalue(),out/'player.html',60000 if preview else 1000000)
+assert receipt['preview']==preview
+assert receipt['html_bytes']<=(60000 if preview else 1000000)
 (out/'receipt.json').write_text(json.dumps(receipt))
-`, root, temporary], { stdio: 'pipe' });
+`, root, temporary, String(preview)], { stdio: 'pipe' });
     browser = await chromium.launch({ headless: true,
       executablePath: process.env.RIFF_BROWSER_EXECUTABLE,
       args: ['--autoplay-policy=no-user-gesture-required', '--enable-unsafe-swiftshader'] });
@@ -40,6 +46,15 @@ receipt=player.build_player(bundle,track,motion,stream.getvalue(),out/'player.ht
     await page.waitForFunction(() => document.querySelector('audio').readyState >= 2);
     assert.equal(await page.locator('h1').innerText(), '__DATA__ <script>window.injected=true</script>');
     assert.equal(await page.evaluate(() => window.injected), undefined);
+    if (preview) {
+      assert((await page.locator('audio').evaluate(e => e.duration)) < 2);
+      assert.equal(await page.locator('#download').innerText(), 'Download preview');
+      await page.locator('#full-file').setInputFiles(path.join(temporary, 'wrong.wav'));
+      await page.waitForFunction(() => document.querySelector('#status').textContent.includes('does not match'));
+      await page.locator('#full-file').setInputFiles(path.join(temporary, 'recording.wav'));
+      await page.waitForFunction(() => document.querySelector('#mode').textContent.includes('SHA-256 verified'));
+      await page.waitForFunction(() => document.querySelector('audio').readyState >= 2);
+    }
     assert.equal(await page.locator('audio').evaluate(e => e.duration), 2);
     const before = await page.locator('canvas').evaluate(e => e.toDataURL());
     await page.locator('audio').evaluate(e => e.play());
@@ -55,6 +70,11 @@ receipt=player.build_player(bundle,track,motion,stream.getvalue(),out/'player.ht
     assert.equal(await page.locator('audio').evaluate(e => e.loop), true);
     assert.equal(await page.locator('#download').getAttribute('href'), await page.locator('audio').getAttribute('src'));
     const receipt = JSON.parse(await page.locator('#receipt').textContent());
+    const audioHash = await page.locator('audio').evaluate(async e => {
+      const bytes = await (await fetch(e.src)).arrayBuffer();
+      return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join('');
+    });
+    assert.equal(audioHash, receipt.audio_sha256);
     assert.equal(receipt.frames, 16000);
     assert.equal(receipt.audio_bytes, 32044);
     assert.equal(requests.filter(url => /^https?:/.test(url)).length, 0);

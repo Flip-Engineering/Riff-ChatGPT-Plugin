@@ -39,6 +39,11 @@ until the setup task completes. These are the pinned YuE2 model files, whose
 license is CC-BY-NC-4.0; include the model terms when relevant to a commercial
 use request. Report actual readiness and errors. Do not replace the engine,
 model revision or scheduler with a different music generator.
+If the command sandbox denies HTTPS downloads, use the host's supported download
+or file-transfer tools for the exact files and revision in the bundled
+`riff/sources.json`. Place them at the runtime's declared model paths, then run
+`riff_setup` again so Riff verifies every size and SHA-256 before use. Do not
+change pins, patch the native runtime or use an external inference backend.
 
 All 18 existing Riff adapter tools are available through `call TOOL`.
 `--arguments` accepts a JSON object or `@/absolute/path/to/arguments.json`.
@@ -67,7 +72,7 @@ pinned Riff dependency used by the desktop studio.
 
 After generating or selecting a recording, **display its player in Chat**. Do
 not stop at a WAV attachment or a tool response. The bundled helper exports the
-actual WAV, actual native visualization data and original Riff artwork renderer:
+actual native visualization data and original Riff artwork renderer:
 
 ```sh
 python3 /absolute/path/to/this/skill/scripts/player.py \
@@ -83,6 +88,16 @@ original WAV and receipt to Library too. If the host cannot display HTML, report
 the actual error and provide the HTML file and audio as downloadable fallbacks.
 An HTML file alone is not an opened panel. Verify playback and visualization in
 the displayed panel when browser inspection is available.
+
+Visualize's installed helper limits HTML fragments to 1,000,000 bytes. The player
+embeds the exact WAV when it fits. Otherwise it uses bundled FFmpeg to make a
+clearly labeled MP3 preview sized to that physical budget. Original visualization
+frames are gzip-compressed without loss. **Always save the full original WAV to
+Library.** The panel's Open full WAV control lets the user select that downloaded
+file, verifies its SHA-256 against the receipt, and enables full-length playback
+and visualization locally. It never uploads the selected file. Do not call the
+embedded preview the full recording. If the original analysis alone exceeds the
+host budget, report the helper's actual error and provide the files separately.
 
 This is a self-contained recording player, not a connected studio. Do not expose
 library/LoRA/composition controls that lack a working native command connection.

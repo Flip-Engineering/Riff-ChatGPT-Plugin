@@ -6,8 +6,10 @@ local computer as its production backend. The homelab remains a build/CI host.
 Private installation and real native generation have passed in ChatGPT Chat.
 The original 0.3.0 package required writable-path, socket and setup recoveries;
 0.3.1 replaces its socket transports; 0.3.2 adds file-lock worker ownership and
-the reusable recording player. Fresh-Chat validation of worker persistence
-is still in progress. A connected full studio has not passed Chat acceptance.
+the reusable recording player. Actual Chat verified that the host reaps detached
+workers between execution calls: 0.3.2 restarts safely and preserves drafts, while
+setup/render/polling must share a retained execution session. A connected full
+studio has not passed Chat acceptance.
 
 ## OpenAI documentation contract
 
@@ -93,7 +95,7 @@ receipts to the user's Library. A queued job is not completed audio.
 The cloud skill now includes `scripts/player.py`. It reads a real recording and
 its native visualization through the existing adapter, transfers WAV bytes using
 the declared bounded audio chunks, and exports self-contained HTML. It carries
-the pinned upstream `artwork.js` and `motionAt` unchanged, the original WAV,
+the pinned upstream `artwork.js` and `motionAt` unchanged,
 and a receipt with audio/source hashes and measured WAV metadata. No audio bytes
 enter model context. The skill asks Chat to display this exact file through the
 host's HTML/Visualize capability and publish audio to Library.
@@ -108,6 +110,21 @@ provide a live native command connection for library, LoRA or score controls.
 Those remain available conversationally through the adapter. Full studio
 navigation and editing require the registered MCP UI transport described above;
 bundling the studio alone does not establish it.
+
+The installed Visualize helper documents and enforces a **1,000,000-byte HTML
+fragment limit**. Version 0.3.3 preserves the exact embedded WAV when it fits;
+larger recordings use a clearly labeled 128 kbit/s MP3 preview created with the
+bundled FFmpeg. Preview duration follows from the remaining fragment capacity,
+including actual encoder overhead. All original motion frames are gzip-compressed
+without loss. The complete original WAV stays in Library. The panel can open
+that downloaded WAV through a local file picker, verify its original SHA-256,
+and play/visualize the complete recording without uploading it or making HTTP
+requests. A preview is never described as a full original WAV.
+
+The Visualize instructions do not document a large-media upload bridge; their
+preview policy does not permit arbitrary HTTPS media or Library download URLs.
+The full MCP studio already has chunked exact-audio transfer, but that transport
+still needs to be connected to Chat. This is tracked in [issue #2](https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/2).
 
 On October 20, the actual Chat acceptance conversation generated recording
 `cfeb4193acd84a87b12ce9800bd204f4`: 47,936 stereo PCM16 frames at 48 kHz,
