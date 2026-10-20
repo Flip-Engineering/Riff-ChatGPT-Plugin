@@ -3,7 +3,10 @@
 The candidate cloud package is designed to run Riff in each user's ChatGPT Chat cloud execution environment. It has
 no external MCP endpoint and never uses the developer's homelab or the user's
 local computer as its production backend. The homelab remains a build/CI host.
-Installation and native generation in ChatGPT Chat have not yet passed end-to-end validation.
+Private installation and real native generation have passed in ChatGPT Chat.
+The original 0.3.0 package required writable-path, socket and setup recoveries;
+0.3.1 replaces its socket transports. Fresh-Chat validation of worker persistence
+is still in progress. A connected full studio has not passed Chat acceptance.
 
 ## OpenAI documentation contract
 
@@ -79,6 +82,44 @@ recordings through the host's Library instead of embedding audio bytes in chat.
 Cloud workspace persistence is bounded by the cloud computer's lifetime. Models
 may need to download again after reset. Publish requested recordings and recipe
 receipts to the user's Library. A queued job is not completed audio.
+
+## Recording panel
+
+The cloud skill now includes `scripts/player.py`. It reads a real recording and
+its native visualization through the existing adapter, transfers WAV bytes using
+the declared bounded audio chunks, and exports self-contained HTML. It carries
+the pinned upstream `artwork.js` and `motionAt` unchanged, the original WAV,
+and a receipt with audio/source hashes and measured WAV metadata. No audio bytes
+enter model context. The skill asks Chat to display this exact file through the
+host's HTML/Visualize capability and publish audio to Library.
+
+```sh
+python3 /path/to/skill/scripts/player.py --track-id RECORDING_ID \
+  --output /writable/path/riff-player.html
+```
+
+This recording player supports playback, seek, loop and download. It does not
+provide a live native command connection for library, LoRA or score controls.
+Those remain available conversationally through the adapter. Full studio
+navigation and editing require the registered MCP UI transport described above;
+bundling the studio alone does not establish it.
+
+On October 20, the actual Chat acceptance conversation generated recording
+`cfeb4193acd84a87b12ce9800bd204f4`: 47,936 stereo PCM16 frames at 48 kHz,
+0.998666667 seconds, native exit 0, seed 1234, two midpoint acoustic steps.
+The original WAV SHA-256 is
+`314375cb23ea17bd6c2762e637b649e42f878d6b3184bf6226def9acb8080523`.
+Chat displayed an HTML recording player using the original Riff renderer and
+actual motion data. The browser's conversation iframe was observed, but playback
+inside that host iframe was not independently inspected. The reusable packaged
+player passed a separate Chromium test of playback time, seeking, looping,
+changing artwork, media identity and title-injection handling without HTTP.
+
+The native studio returned HTTP 200 inside the Chat execution environment;
+Chat's separate cloud browser received `ERR_CONNECTION_REFUSED` at its loopback
+address. A direct studio response also forbids framing. An external UI transport
+would have to connect the host panel to each user's cloud worker; the developer's
+homelab is not a runtime backend.
 
 ## Historical Work probe: not Chat acceptance
 

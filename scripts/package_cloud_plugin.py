@@ -48,7 +48,7 @@ def package(source,destination):
         # Desktop connection metadata never enters the cloud package.
         (bundle/'mcp.json').unlink(missing_ok=True)
         config['execution']='chatgpt-cloud'
-        config['plugin_version']='0.3.1'
+        config['plugin_version']='0.3.2'
         config['host_python_minimum']='3.12'
         (bundle/'runtime/runtime.json').write_text(json.dumps(config,indent=2)+'\n')
         records=[{'path':p.relative_to(bundle).as_posix(),'bytes':p.stat().st_size,'sha256':sha(p),'executable':os.access(p,os.X_OK)}
@@ -58,7 +58,7 @@ def package(source,destination):
         with tarfile.open(archive,'w:gz') as tar:
             tar.add(bundle,arcname='riff-chatgpt')
         metadata=json.loads((PLUGIN/'plugin.json').read_text())
-        metadata['version']='0.3.1'
+        metadata['version']='0.3.2'
         metadata['description']='Compose and generate music with Riff inside your ChatGPT Chat cloud environment.'
         interface=metadata['extensions']['com.openai']['interface']
         interface['shortDescription']='Make music with Riff in Chat'
@@ -69,6 +69,7 @@ def package(source,destination):
             zip.writestr('riff-chatgpt/plugin.json',json.dumps(metadata,indent=2)+'\n')
             zip.write(PLUGIN/'cloud/SKILL.md',skill+'SKILL.md')
             zip.write(PLUGIN/'cloud/riff.py',skill+'scripts/riff.py')
+            zip.write(PLUGIN/'cloud/player.py',skill+'scripts/player.py')
             zip.writestr(skill+'runtime.json',json.dumps({'sha256':sha(archive),'bytes':archive.stat().st_size,'riff_revision':lock['revision'],'platform':'linux-x86_64'}))
             zip.write(archive,skill+'runtime.tar.gz',compress_type=zipfile.ZIP_STORED)
             for path in sorted((PLUGIN/'assets').rglob('*')):

@@ -59,6 +59,30 @@ pinned Riff dependency used by the desktop studio.
    header/duration with ffprobe, and save it to the Library for playback/download.
    Never claim to have listened without an audio-capable tool actually hearing it.
 
+## Display the player in Chat
+
+After generating or selecting a recording, **display its player in Chat**. Do
+not stop at a WAV attachment or a tool response. The bundled helper exports the
+actual WAV, actual native visualization data and original Riff artwork renderer:
+
+```sh
+python3 /absolute/path/to/this/skill/scripts/player.py \
+  --track-id RECORDING_ID --output /writable/path/riff-player.html
+```
+
+Pass the same `--workspace` used for generation if it differs from the default.
+Use the host's available Visualize/HTML panel capability to render that exact
+HTML inline. Read that capability's instructions first. Preserve the original
+renderer and recording; do not rebuild them with an approximation. The player
+includes play/pause, seeking, loop, download and the recording receipt. Save the
+original WAV and receipt to Library too. If the host cannot display HTML, report
+the actual error and provide the HTML file and audio as downloadable fallbacks.
+An HTML file alone is not an opened panel. Verify playback and visualization in
+the displayed panel when browser inspection is available.
+
+This is a self-contained recording player, not a connected studio. Do not expose
+library/LoRA/composition controls that lack a working native command connection.
+
 The original score, LoRA, media and studio implementations are included. A cloud
 CLI call does not itself mount an interactive MCP App in the ChatGPT browser.
 Do not claim an interactive studio opened just because `riff_open_studio`
