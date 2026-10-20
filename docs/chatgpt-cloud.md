@@ -520,3 +520,27 @@ focus, and WAV export requests publication of the original cloud-workspace file.
 No message is retried through another transport after an uncertain result.
 Browser acceptance enforces the trusted-event requirement on writing, inspiration
 and review controls. Native inference, model storage and pairing are unchanged.
+
+
+Installed 0.4.6 acceptance used the same primary plugin identity and Site v14.
+The actual Studio displayed **Send to ChatGPT** and no copy/paste dialog. After
+clarifying an earlier test-conversation instruction to keep the draft unchanged,
+a fresh trusted click sent the editor snapshot automatically. ChatGPT saved it
+from revision 3 to 4 and replied `AUTOMATIC_STUDIO_ROUNDTRIP_OK`; the live editor
+showed “ChatGPT’s draft changes are now in the editor.” Its existing title was
+preserved. The native worker remained the existing 0.4.5 process; this UI change
+did not require native compilation or replacing music models.
+
+
+The installed **WAV to Chat** button also completed automatically: Chat returned
+**Download riff-original-a006eb3c.wav**, backed by the existing Library file
+`libfile_2453c3769a6081919871f43f11234cf4`. It reused the earlier successful
+publication, without another save or music generation. The draft remained at
+revision 4. A separate trusted-click diagnostic using shared `ui/message` also
+returned `MCP_HANDOFF_OK`; the earlier failures do not establish that this host
+lacks component messaging. The temporary diagnostic button was removed.
+
+The returned Library link opened the file viewer; its **Download file** control
+saved the original WAV locally. ffprobe confirmed 0.998667 seconds of 48 kHz,
+stereo PCM audio (191,788 bytes), without audio checksum verification. The host
+file viewer reports no WAV preview; playback remains available in the Studio.

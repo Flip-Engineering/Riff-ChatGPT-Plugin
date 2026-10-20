@@ -1,0 +1,67 @@
+{
+  "plugin_version": "0.4.6",
+  "plugin_id": "Plugin_78cce41996108191810750d824e67b9d",
+  "source_commit": "0040f18",
+  "resource_uri": "ui://riff/studio/adapter-v0.2.7.html",
+  "site_deployment": "appgdep_6ad7d9e9dbbc8191a558ed93cf6fc61d",
+  "site_deployment_status": "succeeded",
+  "root_cause": "Follow-up extension was invoked after awaited initialization/draft/context work, outside the synchronous trusted user event.",
+  "direct_trusted_click_ack": "PANEL_HANDOFF_OK",
+  "installed_controls": {
+    "writing_button": "Send to ChatGPT",
+    "copy_paste_dialog_present": false
+  },
+  "verification": {
+    "python_tests": 107,
+    "packaging_tests": 5,
+    "bridge_tests": 30,
+    "relay_tests": 10,
+    "full_studio_browser_acceptance": "passed, including trusted-event enforcement and unsaved snapshot round-trip; inference is an explicit test double"
+  },
+  "native_runtime": {
+    "version": "0.4.5",
+    "worker_pid": 36150,
+    "relay_pid": 41665,
+    "pairing_expires_at": "2026-10-20T22:16:27Z",
+    "preserved": true
+  },
+  "live_draft_round_trip": {
+    "initial_revision": 2,
+    "saved_revision": 3,
+    "editor_title": "UNSAVED browser score acceptance",
+    "status": "ChatGPT’s draft changes are now in the editor.",
+    "note": "The initial test-conversation keep-draft instruction was clarified; the subsequent component-only run completed without another confirmation."
+  },
+  "automatic_live_round_trip": {
+    "trigger": "Trusted click on installed Send to ChatGPT button; no composer paste or intervention during this run",
+    "from_revision": 3,
+    "to_revision": 4,
+    "chat_response": "AUTOMATIC_STUDIO_ROUNDTRIP_OK",
+    "editor_status": "ChatGPT’s draft changes are now in the editor.",
+    "editor_title_preserved": true
+  },
+  "automatic_live_wav_export": {
+    "trigger": "Trusted click on installed WAV to Chat control; no composer paste",
+    "recording_id": "a006eb3c51174f42bde14dcac379a4c8",
+    "library_file_id": "libfile_2453c3769a6081919871f43f11234cf4",
+    "chat_link_label": "Download riff-original-a006eb3c.wav",
+    "existing_publication_reused": true,
+    "native_generation_started": false,
+    "draft_revision_after": 4,
+    "download": {
+      "path": "/Users/wahargis/Downloads/riff-original-a006eb3c.wav",
+      "bytes": 191788,
+      "duration_seconds": 0.998667,
+      "codec": "pcm_s16le",
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "verified_with": "Browser Library Download file control and ffprobe; no audio checksum"
+    }
+  },
+  "shared_mcp_message_probe": {
+    "trigger": "Separate trusted click on a read-only diagnostic button",
+    "result": "MCP_HANDOFF_OK",
+    "request_result": {},
+    "diagnostic_button_removed": true
+  }
+}
