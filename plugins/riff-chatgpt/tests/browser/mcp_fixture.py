@@ -99,7 +99,14 @@ with runtime as port:
     platform_support.readiness = lambda: {**readiness(), "ready": True, "binary_ready": True, "missing_models": []}
     run.engine_capabilities = lambda *a, **kw: {"lora": True, "warm_engine": False,
         "exact_score_replay": False, "acoustic_checkpoint": False}
-    runtime.reviews.command_builder = fake_listener
+    def downstream_listener(output):
+        command = fake_listener(output)
+        # The upstream fixture uses python -c; its imports need the pinned
+        # dependency explicitly now that the process cwd is the plugin repo.
+        command[2] = "import sys\nsys.path.insert(0, " + repr(str(SOURCE)) + ")\n" + command[2]
+        return command
+
+    runtime.reviews.command_builder = downstream_listener
     runtime.reviews.models_cache = [{"id": "fixture/audio-model", "name": "Fixture listener"}]
     runtime.reviews.models = lambda refresh=False: runtime.reviews.models_cache
     adapter = Adapter(LoopbackBackend(port), DraftStore(args.workspace / "adapter-draft.sqlite3"), args.ui_file)
