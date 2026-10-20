@@ -1,0 +1,206 @@
+{
+  "schema": "riff.chatgpt.studio.host-evidence.v1",
+  "date": "2026-10-20",
+  "surface": "ChatGPT Chat",
+  "plugin_version": "0.4.1",
+  "plugin_id": "Plugin_78cce41996108191810750d824e67b9d",
+  "source_commit": "e1269f6",
+  "riff_commit": "b7ab93cf22ffd9e95a7718aca2e0d451578411b1",
+  "archive": {
+    "bytes": 57002896,
+    "sha256": "50d5a105cad8cf5a3ec4da63052e0279da661a59c843e3c97c8a3afda751ba4a"
+  },
+  "transport": {
+    "project": "appgprj_6ad7ab0539348191b11a0cf72d3457ea",
+    "app": "asdk_app_sites_47b8744149508191b69a7fe838be8b6d",
+    "version": 6,
+    "source_commit": "8715b2358b1feee375098343e13312d33c408c33",
+    "deployment": "appgdep_6ad7b67f81148191b7d422faf61a7c6a",
+    "audience": "owner-private",
+    "resource": "ui://riff/studio/adapter-v0.2.1.html",
+    "inference_backend": false
+  },
+  "native_runtime": "User Chat cloud execution environment; socket-free worker, outbound HTTPS transport only",
+  "chat_url": "https://chatgpt.com/c/6ad7b027-dde8-83e8-a3f5-acbce604be21",
+  "checks": {
+    "source_python_tests": 101,
+    "packaging_tests": 5,
+    "bridge_tests": 26,
+    "transport_tests": 5,
+    "linux_installed_archive_smoke": "passed with explicit PCM transport fixture; not neural generation"
+  },
+  "authentic_recording": {
+    "id": "a006eb3c51174f42bde14dcac379a4c8",
+    "bytes": 191788,
+    "sha256": "3b946eccd47220e3fcdecc84bd0e5ee2c58a63fb8de3a72f895b3a3db039c4f3",
+    "duration_seconds": 0.9986666667,
+    "origin": "Earlier native YuE2 cloud render, imported unchanged into isolated acceptance library; no new render in this test",
+    "host_blob_hash_matches": true,
+    "trusted_playback_seconds": [
+      0.213954,
+      0.52904
+    ],
+    "seek_seconds": 0.5,
+    "full_studio_motion_samples": [
+      {
+        "time": 0,
+        "paused": false,
+        "canvas": "e61d3744b2382cf6ad96c49ba5ccba6564c81fc14b5df87ab74da9316d4b0065",
+        "status": "Your studio is ready."
+      },
+      {
+        "time": 0.144561,
+        "paused": false,
+        "canvas": "a243435f0abed69b7b0a75e568dcf0da4bf431e1d25c2b57a285d058a0768adf",
+        "status": "Your studio is ready."
+      }
+    ],
+    "full_studio_loop_042": {
+      "times": [
+        0.65,
+        0.2,
+        0.2,
+        0.397872,
+        0.6639,
+        0.2,
+        0.2,
+        0.407491,
+        0.67106,
+        0.2,
+        0.2
+      ],
+      "paused": false,
+      "loop": "true"
+    }
+  },
+  "draft": {
+    "panel_save_revision": 1,
+    "independent_chat_read_matches_abc": true,
+    "chat_cas_title_change_revision": 2,
+    "other_recipe_fields_preserved": true,
+    "browser_conflict": {
+      "title": "UNSAVED browser score acceptance",
+      "abc": "X:1\nT:Riff Chat shared score acceptance\nM:4/4\nL:1/8\nQ:1/4=108\nK:Dm\nD2 F2 A2 c2 | A2 G2 F4 |\n",
+      "status": "The shared draft changed while you were editing. Your edits are kept; restore the shared draft to use the new version."
+    }
+  },
+  "lora": {
+    "repo": "becausereasons/yue2-trbdr-folk-troubadour",
+    "revision": "078b19e52baebaa71463ea94afac5ce13abfe29a",
+    "file": "trbdr_broadside.safetensors",
+    "browser_catalog_inspect_install": "passed",
+    "browser_selection": {
+      "ar": "10d658059b64e0e9c0f82b6a63b14666b198d220ff6d88684f680b71c16566bd",
+      "nar": "10d658059b64e0e9c0f82b6a63b14666b198d220ff6d88684f680b71c16566bd",
+      "arScale": "1",
+      "narScale": "1",
+      "hint": "Zero turns a stage off. Each take keeps its exact adapter and strength.",
+      "title": "UNSAVED browser score acceptance"
+    },
+    "conditioned_audio_generated_in_this_test": false,
+    "independent_native_file_checks": [
+      {
+        "name": "original-0.safetensors",
+        "bytes": 117500816,
+        "sha256": "68e3aca03e7aa7ddf8a2ee5cf46ce68c2c18fc9fe432cc60b838b9f0e9b8171f"
+      },
+      {
+        "name": "ar.safetensors",
+        "bytes": 58755120,
+        "sha256": "2e505269c924acb57fc2d43349d5699365398e86c42ac4f9bcb45673f9e84e75"
+      },
+      {
+        "name": "nar.safetensors",
+        "bytes": 58756464,
+        "sha256": "5149299f325cd50bc4f996a2c611e39cae96eddc5bbdcb4da020af927ab40b41"
+      }
+    ]
+  },
+  "model_setup": {
+    "started_from_original_studio": true,
+    "ui_terminal_status": "Music models verified. Ready to make music.",
+    "progress": 1,
+    "verified_bytes": 2933414997,
+    "native_engine_ready": true,
+    "native_lora_enabled": true
+  },
+  "song_size_fixture": {
+    "id": "4549e08a1b0549adaefa4c0d969a7645",
+    "bytes": 34560044,
+    "sha256": "7fb20be0960503021bd484d221da0a34e95069727a27d614fa9ba2513498fdef",
+    "duration_seconds": 180,
+    "origin": "Explicit transport fixture: original PCM repeated and trimmed with bundled FFmpeg, not newly generated music",
+    "host_check": {
+      "bytes": 34560044,
+      "sha256": "7fb20be0960503021bd484d221da0a34e95069727a27d614fa9ba2513498fdef",
+      "duration": 180,
+      "progress": [
+        {
+          "path": "/api/tracks/4549e08a1b0549adaefa4c0d969a7645/audio",
+          "received": 34560044,
+          "total": 34560044
+        }
+      ],
+      "seek_playback": [
+        {
+          "time": 120.129156,
+          "paused": false
+        },
+        {
+          "time": 120.444453,
+          "paused": false
+        }
+      ]
+    }
+  },
+  "limits": [
+    "Owner-private installation and transport; no general-user availability claimed",
+    "Cloud session and pairing lifetime are finite",
+    "No full-song generation, listenability, or LoRA style effectiveness claim",
+    "Publisher listing still uses account full name; package metadata author is Flip Engineering"
+  ],
+  "followup_export_release": {
+    "version": "0.4.2",
+    "source_commit": "dd95662",
+    "archive_bytes": 57003133,
+    "archive_sha256": "fc51300db862ba0b7d75f3ab071a31bbd4d01927a9d5951f40903101ea940244",
+    "site_version": 8,
+    "site_source": "e44c9bbcba0870cccd72ad21666a75fdd937b74f",
+    "site_deployment": "appgdep_6ad7bd48c654819183a9f6c5dc24e5bc",
+    "resource": "ui://riff/studio/adapter-v0.2.3.html",
+    "studio_bytes": 905905,
+    "studio_sha256": "848cd0bc562fb3ee25d44100fbf9032731ccfcefd0cc1c6fc136716bb7bc637f",
+    "tests": {
+      "python": 101,
+      "packaging": 5,
+      "bridge": 29,
+      "original_studio_browser_fixture": "passed",
+      "native_linux_archive_smoke": "passed with explicit PCM fixture"
+    },
+    "host_file_api": "uploadFile rejects real audio/wav with Unsupported file type",
+    "wav_export": "Shared ui/message did not persist a conversation message; instrumented request remained pending. Superseded by 0.4.3 optional follow-up extension."
+  },
+  "separate_upstream_issue": "https://github.com/Flip-Engineering/riff/issues/33",
+  "release_043": {
+    "source_commit": "6fc24816398cbf92424d5287b4d96c21c17d9882",
+    "archive_bytes": 57003474,
+    "archive_sha256": "a1a2787294c44458ef0664a0e615b57127b7dc46bc3d4437b547b9c13a26935e",
+    "installed_original_plugin_version": "0.4.3",
+    "site_version": 9,
+    "site_source": "a0e151f5a25e7affada10d6f78c5be8e54ba0f75",
+    "site_deployment": "appgdep_6ad7c0b50528819186de28021e008e25",
+    "resource": "ui://riff/studio/adapter-v0.2.4.html",
+    "studio_bytes": 906291,
+    "studio_sha256": "0171e13eea2784b8bbc28299edd4d795f5d2224e873739f3d1c39a50daa84ad7",
+    "tests": {
+      "python": 103,
+      "packaging": 5,
+      "bridge": 30,
+      "original_studio_browser_fixture": "passed; inference explicit test double",
+      "native_linux_archive_smoke": "passed with explicit PCM fixture"
+    },
+    "wav_export": "Actual host follow-up acceptance pending",
+    "relay_completion_fix": "Late HTTP409 completion retains cached native result and continues; no native replay",
+    "old_session_83589_cause": "Unknown: retained log only connected event; no traceback or exit status"
+  }
+}

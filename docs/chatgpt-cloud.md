@@ -1,17 +1,17 @@
 # Riff in ChatGPT Chat
 
 The cloud package runs Riff in each user's ChatGPT Chat cloud execution environment. It has
-no external MCP endpoint and never uses the developer's homelab or the user's
+no external inference backend and never uses the developer's homelab or the user's
 local computer as its production backend. The homelab remains a build/CI host.
 Private installation and real native generation have passed in ChatGPT Chat.
 The original 0.3.0 package required writable-path, socket and setup recoveries;
 0.3.1 replaces its socket transports; 0.3.2 adds file-lock worker ownership and
 the reusable recording player. Actual Chat verified that the host reaps detached
 workers between execution calls: 0.3.2 restarts safely and preserves drafts, while
-setup/render/polling must share a retained execution session. A connected full
-studio has not passed Chat acceptance.
+setup/render/polling must share a retained execution session. The connected full studio is privately installed as 0.4.1; measured host checks
+and remaining limits are recorded below.
 
-Version 0.3.3 is privately installed on the existing Riff plugin identity. Its
+Version 0.3.3 was privately installed on the existing Riff plugin identity. Its
 installed native export command and the actual Chat inline player display passed
 acceptance. The renderer and audio controls also passed sandboxed Chromium tests;
 direct playback inside Chat's own nested iframe now passes trusted-click, audio advancement, seeking, loop-wrap and changing original-canvas checks.
@@ -130,8 +130,8 @@ requests. A preview is never described as a full original WAV.
 
 The Visualize instructions do not document a large-media upload bridge; their
 preview policy does not permit arbitrary HTTPS media or Library download URLs.
-The full MCP studio already has chunked exact-audio transfer, but that transport
-still needs to be connected to Chat. This is tracked in [issue #2](https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/2).
+The connected MCP studio now transfers full recordings in bounded chunks, independently
+of the standalone fragment limit. Remaining acceptance is tracked in [issue #2](https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/2).
 
 On October 20, the actual Chat acceptance conversation generated recording
 `cfeb4193acd84a87b12ce9800bd204f4`: 47,936 stereo PCM16 frames at 48 kHz,
@@ -207,7 +207,7 @@ the complete studio in the package and report actual cloud preview/MCP UI
 support; do not label a returned resource reference as an opened studio.
 
 
-## Private connected studio transport (0.4.0 candidate)
+## Private connected studio transport (0.4.3)
 
 The existing native plugin keeps its identity. Its cloud package declares a dependency
 on the separately provisioned, canonical Sites transport App
@@ -217,7 +217,7 @@ No second MCP server mapping is registered for the same Site.
 
 The transport is privately deployed at
 https://riff-studio-transport.amusedcorgi5.chatgpt.site. It is an MCP Apps bridge,
-not an inference backend. It serves the full original 903,396-byte studio and
+not an inference backend. It serves the full original studio (906,291 bytes in 0.4.3) and
 all 18 original adapter tool schemas. User identity comes from Sites-authenticated
 MCP requests. A one-use five-minute enrollment creates an isolated one-hour
 worker capability for the user's own Chat runtime. The helper makes only outbound
@@ -230,15 +230,150 @@ delivery, disconnect erases session messages, and expired sessions are immediate
 inaccessible and collected by bounded background scans. Native library, drafts,
 LoRAs, scores and models remain in the cloud workspace.
 
-Four transport tests cover concurrent enrollment, cross-user isolation, native
+Five transport tests cover FIFO scheduling, concurrent enrollment, cross-user isolation, native
 command envelope/media preservation, one-time claims, offline handling and
-authenticated commands. Three Python tests cover crash recovery, duplicate
-mutations and rejection of arbitrary endpoints. The 99-test source suite passes.
+authenticated commands. Seven Python relay tests cover late-result retention, response retry, crash recovery, duplicate mutations, rejection of
+arbitrary endpoints, bounded transient-poll recovery and fatal authorization
+rejection. The 103-test source suite, five packaging tests and 30 bridge tests pass. The
+complete original-studio browser fixture also passes with production ManagedRiff
+and stdio MCP; its neural generation step is explicitly a test double.
 
 Private acceptance can pass a Sites owner service-access token through an
 untracked, mode-600 file. It is never shipped in source, an archive, an enrollment
 or a shared prompt. This private access path does not establish general-user
 availability. The Site remains owner-private; making its runtime route generally
 reachable requires an explicit audience decision and retains per-session runtime
-authorization and authenticated MCP identity. Connected studio host acceptance
-is still in progress.
+authorization and authenticated MCP identity. Measured connected-studio host
+acceptance follows.
+
+
+### Installed full studio checks, October 20
+
+The initial full-studio checks used the existing Riff plugin at version 0.4.1. That archive was built from
+`e1269f6`, is 57,002,896 bytes, and has SHA-256
+`50d5a105cad8cf5a3ec4da63052e0279da661a59c843e3c97c8a3afda751ba4a`.
+The native executables are reused from the verified Linux CPU platform package;
+the derived manifest includes the current downstream Python adapter and studio.
+A Linux installation smoke passed startup, native state/draft reads, exact audio
+transfer, installed player export and graceful shutdown using an explicit PCM
+fixture. No new neural generation is claimed for that smoke.
+
+The registered MCP App opens the original full studio in Chat, including Library,
+LoRA browser/Installed controls and the composition workspace. The fresh cloud
+filesystem lacked the earlier recording, so its authentic WAV and recipe/metrics
+were imported using the original Store.add_track API into an isolated acceptance
+workspace. Native reads list that recording and zero jobs. The actual studio
+iframe fetched the complete 191,788-byte WAV; a browser-side SHA-256 matched
+`3b946eccd47220e3fcdecc84bd0e5ee2c58a63fb8de3a72f895b3a3db039c4f3`.
+A trusted playback click advanced 0.213954 to 0.529040 seconds, and the seek
+control moved to 0.5 seconds. After the 0.4.1 runtime upgrade, another trusted click
+advanced from zero to 0.144561 seconds while the original canvas SHA-256 changed
+from `e61d3744b2382cf6ad96c49ba5ccba6564c81fc14b5df87ab74da9316d4b0065`
+to `a243435f0abed69b7b0a75e568dcf0da4bf431e1d25c2b57a285d058a0768adf`.
+The original studio's 0.4.2 Chat panel also passed looping: with a 0.2–0.8-second
+region, playback repeatedly wrapped from approximately 0.66 to 0.2 seconds while
+remaining unpaused. The previous standalone player passed independently.
+The original studio successfully browsed Hugging Face, inspected the pinned
+`becausereasons/yue2-trbdr-folk-troubadour` revision
+`078b19e52baebaa71463ea94afac5ce13abfe29a`, and installed
+`trbdr_broadside.safetensors`. The cloud workspace initially had no base models.
+Using the panel’s **Download music models** completed the normal pinned setup:
+2,933,414,997 verified bytes, engine ready, no missing files. Native LoRA support
+then became enabled, and **Use this style** selected both composition and sound
+adapters at strength 1. This proves catalog, inspection, installation, setup and
+selection in the host; it does not prove LoRA-conditioned audio quality.
+
+The original composition workspace created and rendered an ABC sketch. Editing
+its melody and saving from the panel produced shared draft revision 1, independently
+read back through Chat’s native tool. A compare-and-swap update changed only the
+shared title at revision 2. The panel retained its unsaved title and complete ABC,
+showing the expected conflict warning instead of overwriting browser edits.
+
+The panel also transferred a complete 180-second stereo PCM16 WAV fixture:
+34,560,044 bytes, SHA-256
+`7fb20be0960503021bd484d221da0a34e95069727a27d614fa9ba2513498fdef`.
+The browser verified the entire blob, sought to 120 seconds, and trusted playback
+advanced from 120.129156 to 120.444453. The fixture repeats the authentic short
+recording; it is explicitly labeled transport-only, not a newly generated song.
+Transfer is sequential in 1 MiB chunks and took several minutes in this private
+acceptance session.
+
+Host failures repaired during acceptance:
+
+- Resource scans received the complete HTML but did not register an asset until
+  resource responses included the MCP cache fields. Refreshing tools then
+  registered the template and mounted the actual iframe.
+- The host media policy initially rejected local blob/data URLs. The versioned
+  `ui://riff/studio/adapter-v0.2.1.html` resource permits exactly `blob:` and
+  `data:` assets, with no external connection origins. Actual host media loading
+  and exact-WAV playback passed after refreshing the registered resource.
+- The queue originally followed random UUID ordering; FIFO deadline ordering
+  prevents repeated state/draft polls from jumping ahead of older requests.
+- An unhandled HTTP 400 from polling terminated the relay while the native
+  worker remained alive. The old session was resumed without replaying requests.
+  Version 0.4.1 retries transient polling failures up to three times and reports
+  unexpected hosted storage faults as service failures with diagnostic logs.
+  Authorization/session rejections remain fatal. The original poll error body
+  was not retained, so its underlying storage/network cause is not established.
+
+
+### File export compatibility (0.4.2–0.4.3)
+
+The actual Chat MCP host did not advertise the shared `downloadFile` capability.
+Its documented optional `window.openai.uploadFile` extension was present, but
+rejected the real WAV with `Unsupported file type`. The bridge therefore keeps
+shared MCP downloads when supported, feature-detects the documented Chat file
+extension for other exports, and labels the recording action **WAV to Chat**
+when direct app downloads are absent. The shared `ui/message` request did not
+produce a persisted conversation message in actual Chat testing; an instrumented
+second request remained pending. Version 0.4.3 prefers the documented
+`window.openai.sendFollowUpMessage({prompt})` extension when present, choosing
+one path before sending and never retrying through another API after an uncertain
+send. This requests export of the original recording from the paired workspace to Library.
+It reports **export requested**, not **export ready**, until Chat performs the
+actual export. A different conversation with no access to that cloud workspace
+must report the mismatch rather than imply the file was saved.
+
+This is a host compatibility path, not a change to audio bytes or MIME types.
+The UI does not rename a WAV to pretend it is a supported document, open a native
+socket, or use the homelab as a file/inference backend. OpenAI's exact
+[file API signatures](https://developers.openai.com/plugins/reference#file-apis)
+and [shared UI methods](https://developers.openai.com/plugins/build/chatgpt-ui#prefer-shared-fields-and-methods)
+are the implementation contract. Direct file-library export support varies by
+host and file type; ABC/MIDI/MP4 export acceptance is separate from the passed
+browser protocol fixture.
+
+The final 0.4.2 archive was built from `dd95662`: 57,003,133 bytes, SHA-256
+`fc51300db862ba0b7d75f3ab071a31bbd4d01927a9d5951f40903101ea940244`.
+The existing plugin importer confirmed **New version uploaded**. Its Linux
+installed-archive smoke passed startup, native state/draft reads, exact WAV
+transfer, installed player export and graceful shutdown with a PCM fixture.
+The private transport is Site version 8, source
+`e44c9bbcba0870cccd72ad21666a75fdd937b74f`, deployment
+`appgdep_6ad7bd48c654819183a9f6c5dc24e5bc`, resource
+`ui://riff/studio/adapter-v0.2.3.html`. No audience change was made.
+
+Version 0.4.3 was built from `6fc24816398cbf92424d5287b4d96c21c17d9882`:
+57,003,474 bytes, SHA-256
+`a1a2787294c44458ef0664a0e615b57127b7dc46bc3d4437b547b9c13a26935e`.
+Its installed Linux smoke passed native startup, state/draft reads, exact WAV
+transfer, player export and graceful stop with an explicit PCM fixture.
+Site version 9 deployed successfully from
+`a0e151f5a25e7affada10d6f78c5be8e54ba0f75`, deployment
+`appgdep_6ad7c0b50528819186de28021e008e25`, resource
+`ui://riff/studio/adapter-v0.2.4.html`. The full studio HTML SHA-256 is
+`0171e13eea2784b8bbc28299edd4d795f5d2224e873739f3d1c39a50daa84ad7`.
+
+This release also fixes a separate relay defect: HTTP 409 rejecting a late
+command completion now retains that command's cached result and continues the
+relay, without replaying its native operation. Other authorization/session
+rejections remain fatal. The older relay session 83589 disappeared before its
+pairing expired, but its retained log contains only the initial connected event
+and no exit status or traceback. Its termination cause is unknown; the new
+late-completion test does not establish the cause of that historical exit.
+
+A separate upstream receipt accounting discrepancy is tracked in
+[Riff #33](https://github.com/Flip-Engineering/riff/issues/33). Individual source,
+AR and NAR sizes/hashes and canonical provenance verified correctly; the receipt's
+aggregate size differs from the referenced payload total by 16 MiB. This did not
+prevent installation or selection.
