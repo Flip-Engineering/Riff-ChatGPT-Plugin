@@ -3,6 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import urllib.error
+from unittest.mock import Mock
 
 path=Path(__file__).resolve().parents[1]/'cloud/relay.py'
 spec=importlib.util.spec_from_file_location('riff_cloud_relay',path)
@@ -10,6 +11,36 @@ relay=importlib.util.module_from_spec(spec);spec.loader.exec_module(relay)
 
 
 class RelayTests(unittest.TestCase):
+    def test_late_delivery_keeps_receipt_and_allows_the_next_command_without_replay(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            calls=[]
+            f=relay.Forwarder(Path(tmp)/'relay.sqlite3',lambda payload:calls.append(payload) or {'content':[]})
+            command={'request_id':'c'*32,'tool':'riff_save_draft','arguments':{},'claim':'private'}
+            result=f.forward(command)
+            transport=Mock()
+            transport.post.side_effect=relay.ResultDeliveryRejected('Late response')
+            self.assertFalse(relay.deliver_result(transport,'session','private',command,result,f))
+            self.assertEqual(f.db.execute('SELECT state FROM forwarded').fetchone()[0],'complete')
+            self.assertEqual(f.forward(command),result)
+            next_command={**command,'request_id':'d'*32,'tool':'riff_get_draft'}
+            transport.post.side_effect=None
+            self.assertTrue(relay.deliver_result(transport,'session','private',next_command,f.forward(next_command),f))
+            self.assertEqual(len(calls),2)
+            self.assertEqual(f.db.execute('SELECT state FROM forwarded WHERE id=?',('d'*32,)).fetchone()[0],'acknowledged')
+            f.close()
+
+    def test_transport_distinguishes_late_response_from_session_authentication_rejection(self):
+        transport=relay.Transport()
+        transport.opener=Mock()
+        def reject(*args, **kwargs):
+            raise urllib.error.HTTPError('https://transport/runtime/complete',409,'Late',None,None)
+        transport.opener.open.side_effect=reject
+        with self.assertRaises(relay.ResultDeliveryRejected):
+            transport.post('complete',{},'private')
+        with self.assertRaises(RuntimeError) as raised:
+            transport.post('poll',{},'private')
+        self.assertNotIsInstance(raised.exception,relay.ResultDeliveryRejected)
+
     def test_completed_and_acknowledged_mutations_are_not_replayed(self):
         calls=[]
         with tempfile.TemporaryDirectory() as tmp:

@@ -20,6 +20,10 @@ import urllib.request
 ENDPOINT = 'https://riff-studio-transport.amusedcorgi5.chatgpt.site'
 
 
+class ResultDeliveryRejected(RuntimeError):
+    """This command's result is no longer accepted; keep the native receipt."""
+
+
 class NoRedirects(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, request, fp, code, message, headers, newurl):
         raise urllib.error.HTTPError(request.full_url, code, 'Transport redirects are not accepted.', headers, fp)
@@ -46,7 +50,11 @@ class Transport:
             with self.opener.open(request, timeout=30) as response:
                 data = response.read(1600001)
         except urllib.error.HTTPError as exc:
+            if exc.code == 409 and route == 'complete':
+                exc.close()
+                raise ResultDeliveryRejected('The command response expired or was already delivered.') from None
             if exc.code in (401, 403, 409):
+                exc.close()
                 raise RuntimeError('Riff transport rejected this session (' + str(exc.code) + '). Inspect pairing/native state before retrying.') from None
             raise
         if len(data) > 1600000:
@@ -79,6 +87,25 @@ def private_json(path, value):
     with open(path, 'w', opener=lambda p, f: os.open(p, f, 0o600)) as output:
         os.fchmod(output.fileno(), 0o600)
         json.dump(value, output, allow_nan=False)
+
+
+def deliver_result(transport, session, credential, command, result, forwarder, sleep=time.sleep):
+    """Retry a cached response, never native execution; isolate late responses."""
+    for attempt in range(3):
+        try:
+            transport.post('complete', {'session_id': session, 'request_id': command['request_id'],
+                'claim': command['claim'], 'result': result}, credential)
+            forwarder.acknowledge(command['request_id'])
+            return True
+        except ResultDeliveryRejected:
+            # A cancelled/timed-out UI request must not disconnect every other
+            # studio control. Keep this complete local receipt for inspection.
+            print(json.dumps({'status': 'result_retained', 'request_id': command['request_id']}), flush=True)
+            return False
+        except (OSError, urllib.error.URLError):
+            if attempt == 2:
+                raise
+            sleep(1)
 
 
 class Forwarder:
@@ -173,17 +200,7 @@ def main():
                 time.sleep(1)
                 continue
             result = forwarder.forward(command)
-            # Retry delivering a cached result, never its native operation.
-            for attempt in range(3):
-                try:
-                    transport.post('complete', {'session_id': session, 'request_id': command['request_id'],
-                        'claim': command['claim'], 'result': result}, credential)
-                    forwarder.acknowledge(command['request_id'])
-                    break
-                except (OSError, urllib.error.URLError):
-                    if attempt == 2:
-                        raise
-                    time.sleep(1)
+            deliver_result(transport, session, credential, command, result, forwarder)
     finally:
         forwarder.close()
         print(json.dumps({'status': 'disconnected', 'native_data_preserved': True}), flush=True)
