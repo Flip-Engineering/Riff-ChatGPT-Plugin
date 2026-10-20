@@ -139,3 +139,14 @@ test('R2 retries are bounded and unrelated faults are not retried',async()=>{
   await assert.rejects(r.put('key',{}),/authorization/);
   assert.equal(calls,1);assert.deepEqual(waits,[]);
 });
+
+test('the observed R2 list error recovers without creating or resubmitting commands',async()=>{
+  let calls=0;const waits=[],options={prefix:'requests/session/',limit:32};
+  const r=new Relay({list:async value=>{
+    assert.deepEqual(value,options);
+    if(++calls===1)throw new Error('list: Reduce your concurrent request rate for the same object. (10058)');
+    return {objects:[],truncated:false};
+  }},tools,Date.now,async ms=>waits.push(ms));
+  assert.deepEqual(await r.storage('list',options),{objects:[],truncated:false});
+  assert.equal(calls,2);assert.deepEqual(waits,[1100]);
+});

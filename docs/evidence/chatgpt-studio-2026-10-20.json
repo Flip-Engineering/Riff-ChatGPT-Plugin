@@ -199,8 +199,148 @@
       "original_studio_browser_fixture": "passed; inference explicit test double",
       "native_linux_archive_smoke": "passed with explicit PCM fixture"
     },
-    "wav_export": "Actual host follow-up acceptance pending",
+    "wav_export": "Trusted physical click returned from sendFollowUpMessage, showed requested, but Chat remained on Stop without a new visible response for several minutes. Stopped and reloaded; delivery/publication not established by this click.",
     "relay_completion_fix": "Late HTTP409 completion retains cached native result and continues; no native replay",
-    "old_session_83589_cause": "Unknown: retained log only connected event; no traceback or exit status"
+    "old_session_83589_cause": "Unknown: retained log only connected event; no traceback or exit status",
+    "actual_cloud_upgrade": {
+      "same_workspace": true,
+      "models_ready": true,
+      "lora_enabled": true,
+      "recordings_preserved": 2,
+      "shared_draft_revision": 2,
+      "retained_relay_session": 57346,
+      "actual_resource_contains_followup_extension": true,
+      "actual_original_wav_loaded": true
+    },
+    "abc_midi_export": "Both original score export buttons returned Unsupported file type from uploadFile in actual Chat.",
+    "conversation_export": {
+      "confirmed": true,
+      "duplicate_save_submitted": false,
+      "recording_id": "a006eb3c51174f42bde14dcac379a4c8",
+      "files": [
+        {
+          "name": "riff-original-a006eb3c.wav",
+          "bytes": 191788,
+          "sha256": "3b946eccd47220e3fcdecc84bd0e5ee2c58a63fb8de3a72f895b3a3db039c4f3"
+        },
+        {
+          "name": "riff-original-a006eb3c-recipe.json",
+          "bytes": 2709
+        },
+        {
+          "name": "riff-original-a006eb3c-recording-receipt.json",
+          "bytes": 8996
+        }
+      ],
+      "independent_saved_file_downloads_verified": true,
+      "initial_helper_error": "hosted apps tools/list request failed with HTTP status 403; failed before writing",
+      "successful_path": "Separate documented Chat file-output route",
+      "ui_button_delivery_passed": false
+    },
+    "detached_relay_experiment": {
+      "pid": 29216,
+      "native_worker_pid": 27261,
+      "launched_utc": "2026-10-20T19:47:10Z",
+      "verified_utc": "2026-10-20T19:50:34Z",
+      "survived_launcher_exit_seconds": 204,
+      "start_new_session": true,
+      "stdin": "/dev/null",
+      "stdout_stderr": "Private mode600 log",
+      "instances": 1,
+      "native_script_unchanged": true,
+      "companion_state_http_status": 200,
+      "companion_shared_draft_revision": 2,
+      "companion_loras_enabled": true,
+      "preserved_journal_rows": 789,
+      "earlier_failure_cause_proven": false,
+      "normal_later_turn_check": {
+        "passed": true,
+        "process_check_utc": "2026-10-20T19:52:15Z",
+        "companion_reads_completed_utc": "2026-10-20T19:52:25Z",
+        "same_relay_start_identity": true,
+        "same_native_worker_start_identity": true,
+        "online": true,
+        "draft_revision": 2
+      }
+    },
+    "library_favorite_control": {
+      "ui_native_after_click": {
+        "ui": "true",
+        "native": 1
+      },
+      "ui_native_after_restore": {
+        "ui": "false",
+        "native": 0
+      }
+    }
+  },
+  "followup_issues": {
+    "relay_lifetime": "https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/3",
+    "host_exports": "https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/4"
+  },
+  "release_044": {
+    "source_commit": "57672390a1beb59859405f384fd88baa6b32cbde",
+    "archive_bytes": 57004465,
+    "archive_sha256": "934de83a1d468437d469c2368bebfb5dc7efd40cfb5b47fbdaed70416243054f",
+    "change": "Package verified detached relay launch and honest export guidance in cloud skill; native engine/UI unchanged",
+    "packaging_tests": 5,
+    "linux_archive_smoke": "passed with explicit PCM fixture",
+    "actual_cloud_upgrade": {
+      "passed": true,
+      "verified_utc": "2026-10-20T20:05:15Z",
+      "relay_pid": 31499,
+      "native_worker_pid": 31503,
+      "detached": true,
+      "instances": 1,
+      "models_ready": true,
+      "lora_enabled": true,
+      "recordings_preserved": 2,
+      "favorite_restored": false,
+      "draft_revision": 2,
+      "model_lora_rehashed_files": 28,
+      "model_lora_rehashed_bytes": 7248447133,
+      "manifest_pins_verified": 9,
+      "library_export_not_repeated": true
+    },
+    "renewed_pairing": {
+      "verified_utc": "2026-10-20T20:14:53Z",
+      "expires_utc": "2026-10-20T21:10:32.532Z",
+      "relay_pid": 32934,
+      "same_native_worker_pid": 31503,
+      "one_relay": true,
+      "native_worker_restarted": false
+    }
+  },
+  "transport_storage_fix": {
+    "issue": "https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/5",
+    "source_commit": "a22bfa6",
+    "site_version": 10,
+    "site_source": "85b5201beb9318b1167e3a1c91cd7e415241abe4",
+    "deployment": "appgdep_6ad7ca183f04819187a6e615a394f9e0",
+    "deployed": true,
+    "tests": 9,
+    "observed_error": "list: Reduce your concurrent request rate for the same object. (10058)",
+    "change": "Bounded retry of explicit R2 10058 storage rejection preserving original CAS; heartbeat writes at most every five seconds; native operations not replayed",
+    "actual_burst_check": {
+      "passed": true,
+      "calls": 4,
+      "seconds": 13.183,
+      "returned_10058_errors": 0,
+      "results": {
+        "draft": 200,
+        "state": 200,
+        "system": 200,
+        "capabilities": 200
+      },
+      "draft_revision": 2,
+      "recordings": 2,
+      "favorites": [
+        false,
+        false
+      ],
+      "models_ready": true,
+      "jobs": 0,
+      "native_version": "0.4.4"
+    }
   }
 }

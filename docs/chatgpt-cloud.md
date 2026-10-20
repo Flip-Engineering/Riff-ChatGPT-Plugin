@@ -230,7 +230,7 @@ delivery, disconnect erases session messages, and expired sessions are immediate
 inaccessible and collected by bounded background scans. Native library, drafts,
 LoRAs, scores and models remain in the cloud workspace.
 
-Five transport tests cover FIFO scheduling, concurrent enrollment, cross-user isolation, native
+Nine transport tests cover R2 rate-limit recovery, bounded retry, heartbeat throttling, FIFO scheduling, concurrent enrollment, cross-user isolation, native
 command envelope/media preservation, one-time claims, offline handling and
 authenticated commands. Seven Python relay tests cover late-result retention, response retry, crash recovery, duplicate mutations, rejection of
 arbitrary endpoints, bounded transient-poll recovery and fatal authorization
@@ -371,6 +371,82 @@ rejections remain fatal. The older relay session 83589 disappeared before its
 pairing expired, but its retained log contains only the initial connected event
 and no exit status or traceback. Its termination cause is unknown; the new
 late-completion test does not establish the cause of that historical exit.
+
+Actual 0.4.3 cloud upgrade checks confirmed the same workspace's ready models,
+enabled LoRA, both preserved recordings and unchanged shared draft revision 2.
+The refreshed full studio loaded the original WAV and its installed bridge
+contains the follow-up extension. A single trusted physical **WAV to Chat** click
+returned from `sendFollowUpMessage` and displayed the requested status, but Chat
+remained on **Stop** for several minutes without a visible new response. That
+stalled request was stopped and the page reloaded. This is **failed host export
+acceptance**, not proof of publication. The original composition's **Export ABC**
+and **Export MIDI** also returned `Unsupported file type` from `uploadFile`.
+Normal conversation/file-output recovery and relay process lifetime are being
+checked separately. See [host exports #4](https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/4)
+and [relay lifetime #3](https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/3).
+
+Recovery through a normal conversation confirmed the original short recording,
+recipe and original recording receipt in Library. The saved WAV was independently
+retrieved and matched all 191,788 original bytes and the SHA-256 above; the saved
+recipe is 2,709 bytes and recording receipt 8,996 bytes. The earlier prepared
+upload helper failed before writing with `hosted apps tools/list request failed
+with HTTP status 403`; a separate documented Chat file-output route completed.
+Its successful records were reconciled without submitting a duplicate save.
+This proves conversation export, while the panel button's acceptance remains failed.
+
+A controlled launch of the identical bundled relay with
+`subprocess.Popen(start_new_session=True, stdin=DEVNULL)` and stdout/stderr to a
+private mode-600 log survived its launcher returning. Separate execution calls
+confirmed the same detached process alive 204 seconds later, reparented to PID 1;
+real companion state/draft/LoRA requests returned HTTP 200. The original native
+worker remained alive, both recording rows/recipes/metrics and shared draft
+were unchanged, and all 789 existing journal rows were preserved. This is a
+measured process-lifetime improvement, not proof of full pairing-lifetime survival
+or the cause of earlier session losses. A later normal-turn check passed at
+19:52:15–19:52:25 UTC: same relay and native-worker start identities, companion
+online, shared draft still revision 2. The original player favorite control also
+changed native metadata from false to true and back; independent native reads
+confirmed both values and final restoration to false.
+
+Version 0.4.4 packages that measured detached-launch recipe in the cloud skill,
+including one-instance/ownership checks, private logs, post-launch native reads,
+and retained-session fallback when a host reaps detached workers. It also records
+the observed panel-export limitations and verified normal-conversation file-output
+recovery. It does not change the native engine, original studio code or Site.
+Archive source `57672390a1beb59859405f384fd88baa6b32cbde`, 57,004,465 bytes,
+SHA-256 `934de83a1d468437d469c2368bebfb5dc7efd40cfb5b47fbdaed70416243054f`.
+Five packaging tests and the final installed Linux smoke passed; the smoke used
+an explicit PCM fixture, not new neural generation.
+
+The actual 0.4.4 cloud upgrade passed at 20:05:15 UTC: one detached relay,
+one native worker, ready models, enabled LoRA, both recordings, original favorite
+value false and complete shared draft revision 2 preserved. All 28 model/LoRA
+files (7,248,447,133 bytes) were rehashed with no mismatch; all nine installed
+manifest pins still matched. Library files were not saved again.
+
+That check exposed an actual R2 `list` error 10058 during a concurrent system
+read; a serialized read succeeded. [Cloudflare's error reference](https://developers.cloudflare.com/r2/api/error-codes/)
+and [R2 limits](https://developers.cloudflare.com/r2/platform/limits/)
+document this rate limit, including one write per second to an object key.
+The transport now retries only explicit 10058 storage rejections with bounded
+backoff and unchanged compare-and-swap conditions, and writes heartbeat updates
+at most every five seconds. It never reruns a native operation. Nine transport
+tests pass, including a per-key rate-limited claim/complete flow, the exact `list`
+error, bounded retries and immediate propagation of unrelated faults.
+The owner-private Site version 10 deployed from
+`85b5201beb9318b1167e3a1c91cd7e415241abe4`, deployment
+`appgdep_6ad7ca183f04819187a6e615a394f9e0`; native package and UI resource
+remain unchanged. [Issue #5](https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/5)
+tracks the fix and live verification. This observed error does not establish
+the cause of earlier relay-session losses.
+
+Live verification of Site version 10 passed after renewing the temporary
+acceptance pairing: four concurrent companion draft/state/system/capability reads
+all returned HTTP 200 in 13.183 seconds, with no returned 10058 errors. Native
+0.4.4, ready models, both recordings with favorites false, zero jobs and complete
+shared draft revision 2 were unchanged. The same native worker remained alive;
+exactly one replacement detached relay was online. The final check was
+20:14:53 UTC and the renewed pairing expires at 21:10:32.532 UTC.
 
 A separate upstream receipt accounting discrepancy is tracked in
 [Riff #33](https://github.com/Flip-Engineering/riff/issues/33). Individual source,
