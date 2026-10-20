@@ -79,18 +79,49 @@ It carries MCP Apps commands and media; the native engine and every project
 file stay in this user's Chat cloud workspace. It is not an inference service.
 Preserve this Riff plugin and its workspace when connecting the companion.
 
-1. Call the companion's `riff_runtime_status`. If offline but already paired,
-   resume the same `scripts/relay.py --workspace /exact/workspace` in a retained,
-   network-enabled cloud execution session. Do not replace an existing pairing
-   or start a different native workspace silently.
+1. Call the companion's `riff_runtime_status`. Reuse an online connection; never
+   start a duplicate relay. If offline but already paired, inspect its exact
+   process identity and private log before resuming the same workspace. Do not
+   replace an existing pairing or start a different native workspace silently.
 2. For an unpaired runtime, call its `riff_connect_runtime` and save the returned
    enrollment JSON to a private file. Run the adjacent `scripts/relay.py` with
    `--workspace /exact/workspace --enrollment-file /private/enrollment.json`.
    The helper consumes the one-use enrollment file and stores its own private
    session capability. Never paste worker credentials or media bytes in chat.
-3. Wait for `connected` and verify `riff_runtime_status` is online. Keep this
-   execution session running while the studio is used. The native worker opens
-   no listener; only the relay makes outbound HTTPS requests to its fixed endpoint.
+3. Launch the relay from the host's **network-enabled** execution tool. Prefer
+   a detached process with its own OS session, `/dev/null` input and a private
+   file log. This exact method survived launcher return, separate execution
+   calls and a subsequent normal conversation turn in actual Chat acceptance:
+
+   ```python
+   import os, subprocess, sys
+   from pathlib import Path
+   workspace = Path("/exact/existing/workspace")
+   relay = Path("/absolute/path/to/this/skill/scripts/relay.py")
+   log_path = workspace / "studio-relay.log"
+   # First establish that no relay already owns this workspace. Preserve any
+   # existing pairing; append enrollment/private-owner flags only when needed.
+   flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW
+   with os.fdopen(os.open(log_path, flags, 0o600), "ab") as log:
+       os.fchmod(log.fileno(), 0o600)
+       process = subprocess.Popen(
+           [sys.executable, "-B", str(relay), "--workspace", str(workspace)],
+           stdin=subprocess.DEVNULL, stdout=log, stderr=log,
+           start_new_session=True,
+       )
+   print({"relay_pid": process.pid, "private_log": str(log_path)})
+   ```
+
+   For first pairing, include `--enrollment-file /private/enrollment.json` in
+   that same command. For private owner acceptance only, also include the
+   existing `--service-access-file`; never expose its contents. Wait for
+   `connected` in the private log, verify the exact process identity and only
+   one instance, and call `riff_runtime_status` plus a native read after the
+   launcher has returned. A PID or successful Popen alone is not readiness.
+   If this host reaps detached processes, use a retained network-enabled
+   execution session and verify it between turns. Neither method guarantees
+   cloud-computer lifetime. The native worker opens no listener; only the
+   relay makes outbound HTTPS requests to its fixed endpoint.
 4. Call the companion's `riff_open_studio`. Its registered MCP resource opens
    the complete original studio, including library, LoRA and score navigation.
    Use the same companion tools for conversational changes so UI and chat share
@@ -173,3 +204,13 @@ require the user's configured provider and must not substitute for listening.
 
 For reproducibility, preserve the returned recipe, seed, model/LoRA identity,
 job, recording and source receipt alongside exported music when requested.
+
+Actual Chat file uploads currently reject WAV, ABC and MIDI, and a component
+follow-up message may stall even when its API returns. Do not report Library
+publication from a panel status alone. When asked in a normal conversation,
+publish the original workspace files through an available documented host
+file-output tool, reconcile any uncertain earlier save first, and verify the
+saved/downloaded bytes against the original hash. If a prepared upload helper
+fails before writing, use another supported host file-output route; do not
+require that helper or replay an uncertain save. Distinguish successful
+conversation export from unsupported panel export and report concrete errors.
