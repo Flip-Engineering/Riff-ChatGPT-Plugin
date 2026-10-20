@@ -21,8 +21,17 @@ test('complete original Riff studio through production ManagedRiff and stdio MCP
     page.setDefaultTimeout(20000);
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', request => { try { if (request.frame().name() === 'riff-studio') frameRequests.push(request.url()); } catch {} });
+    async function eventually(predicate, message, timeout = 20000) {
+      const deadline = Date.now() + timeout;
+      for (;;) {
+        const value = await predicate();
+        if (value) return value;
+        if (Date.now() >= deadline) throw new Error(message);
+        await page.waitForTimeout(50);
+      }
+    }
     await page.goto(host.url);
-    let app = page.frame({ name: 'riff-studio' });
+    let app = await eventually(() => page.frame({ name: 'riff-studio' }), 'Studio frame did not appear');
     await app.waitForFunction(() => typeof selected !== 'undefined' && selected && document.querySelector('#play').disabled === false);
     await app.waitForFunction(() => document.querySelector('#riff-chatgpt-status').textContent.includes('ready'));
     assert.equal(await app.evaluate(() => selected.id), host.fixture.track_id);
@@ -108,7 +117,7 @@ test('complete original Riff studio through production ManagedRiff and stdio MCP
     await app.waitForFunction(() => document.querySelector('#lora-detail audio').currentTime > .1);
     await app.locator('#lora-detail audio').evaluate(audio => audio.pause());
     await app.locator('#lora-install').click();
-    await app.waitForFunction(async () => (await RiffHost.api('/api/loras')).loras.some(item => item.source?.type === 'huggingface'));
+    await eventually(async () => (await app.evaluate(() => RiffHost.api('/api/loras'))).loras.some(item => item.source?.type === 'huggingface'), 'Installed adapter did not appear');
     await app.locator('#lora-import-open').click();
     await app.locator('#lora-import-file').setInputFiles(host.fixture.loras.upload);
     await app.waitForFunction(() => document.querySelector('#lora-status').textContent.includes('imported'));
