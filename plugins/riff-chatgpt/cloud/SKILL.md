@@ -72,14 +72,13 @@ pinned Riff dependency used by the desktop studio.
 
 ### Connected full studio
 
-When the user asks for the complete studio, use the private **Riff Studio
-Transport** companion when it is connected. Its canonical plugin is
-https://chatgpt.com/plugins/plugin_asdk_app_sites_47b8744149508191b69a7fe838be8b6d.
-It carries MCP Apps commands and media; the native engine and every project
-file stay in this user's Chat cloud workspace. It is not an inference service.
-Preserve this Riff plugin and its workspace when connecting the companion.
+Use this Riff plugin's own MCP tools to open the complete studio. The bundled
+skill, native runtime, Studio panel and tool connection are one installed Riff
+plugin. Do not install or direct the user to a separate transport/companion
+plugin. Its hosted command bridge does not generate music: the native engine
+and every project file stay in this user's Chat cloud workspace.
 
-1. Call the companion's `riff_runtime_status`. Reuse an online connection; never
+1. Call Riff's `riff_runtime_status`. Reuse an online connection; never
    start a duplicate relay. If offline but already paired, inspect its exact
    process identity and private log before resuming the same workspace. Do not
    replace an existing pairing or start a different native workspace silently.
@@ -122,9 +121,9 @@ Preserve this Riff plugin and its workspace when connecting the companion.
    execution session and verify it between turns. Neither method guarantees
    cloud-computer lifetime. The native worker opens no listener; only the
    relay makes outbound HTTPS requests to its fixed endpoint.
-4. Call the companion's `riff_open_studio`. Its registered MCP resource opens
+4. Call Riff's `riff_open_studio`. Its registered MCP resource opens
    the complete original studio, including library, LoRA and score navigation.
-   Use the same companion tools for conversational changes so UI and chat share
+   Use the same Riff tools for conversational changes so UI and chat share
    the native state and revision checks. A displayed panel is not sufficient:
    verify state, library selection and an actual edit through its command channel.
 5. If the cloud process stops, report offline status and resume it explicitly.
@@ -132,7 +131,7 @@ Preserve this Riff plugin and its workspace when connecting the companion.
    Disconnect through `riff_disconnect_runtime` only when the user requests it
    or at the end of an explicitly temporary acceptance test; native data survives.
 
-The companion currently has an **owner-private** Sites audience. Do not change
+The hosted bridge currently has an **owner-private** Sites audience. Do not change
 its audience or claim general availability. During private owner acceptance,
 Sites service access may be supplied to the helper through a private
 `--service-access-file`. Never put that owner credential in a plugin archive,

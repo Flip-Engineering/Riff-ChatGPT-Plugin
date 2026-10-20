@@ -154,7 +154,7 @@ export function createWorker(contracts,resource) {
   return {async fetch(request,env,ctx) {
     try {
       const url=new URL(request.url),path=url.pathname;
-      if(path==='/')return new Response('<!doctype html><title>Riff Studio Transport</title><h1>Riff Studio Transport</h1><p>Connects the Riff panel in ChatGPT Chat to your own cloud runtime. Music generation, library, LoRAs and scores remain in that runtime.</p><p>This transport stores only expiring pairing records and transient command messages. It does not host a music engine.</p>',{headers:{'content-type':'text/html; charset=utf-8','cache-control':'private, no-store'}});
+      if(path==='/')return new Response('<!doctype html><title>Riff</title><h1>Riff</h1><p>Compose and generate music in ChatGPT with Riff Studio, YuE2, scores, LoRAs and your recording library.</p><p>Open the Riff plugin in ChatGPT to use your Studio and music workspace.</p>',{headers:{'content-type':'text/html; charset=utf-8','cache-control':'private, no-store'}});
       if(request.method!=='POST')return json({error:'Not found'},404);
       if(!env.BUCKET)throw error('Transport storage is unavailable.',503);
       if(Number(request.headers.get('content-length')||0)>MAX_BODY)throw error('Request exceeds transfer limit.',413);

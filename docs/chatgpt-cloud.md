@@ -544,3 +544,21 @@ The returned Library link opened the file viewer; its **Download file** control
 saved the original WAV locally. ffprobe confirmed 0.998667 seconds of 48 kHz,
 stereo PCM audio (191,788 bytes), without audio checksum verification. The host
 file viewer reports no WAV preview; playback remains available in the Studio.
+
+
+### 1.1.0: one app-backed Riff plugin
+
+The canonical existing app-backed plugin now owns the native runtime archive,
+Riff Studio skill, Studio panel and MCP connection together:
+`plugin_asdk_app_sites_47b8744149508191b69a7fe838be8b6d`.
+Its existing App ID, authenticated connection, private audience and hosted bridge
+are preserved. The former standalone wrapper
+`Plugin_78cce41996108191810750d824e67b9d` is retired after installed verification.
+
+Cloud packaging derives from `cloud/plugin.json` and `cloud/.app.json`, preserves
+the canonical package name and App binding, and includes a synchronized legacy
+manifest for the existing app-backed identity. Native cache and workspace paths
+remain independent of plugin installation, preserving models and music.
+The bridge has one user-facing name, Riff; its implementation is still hosted
+on the existing private Site. This change does not widen access or claim public
+availability. Upstream Riff and its pinned dependency remain unchanged.

@@ -54,7 +54,8 @@ def package(source,destination):
         # Desktop connection metadata never enters the cloud package.
         (bundle/'mcp.json').unlink(missing_ok=True)
         config['execution']='chatgpt-cloud'
-        config['plugin_version']='0.4.6'
+        metadata=json.loads((PLUGIN/'cloud/plugin.json').read_text())
+        config['plugin_version']=metadata['version']
         config['host_python_minimum']='3.12'
         (bundle/'runtime/runtime.json').write_text(json.dumps(config,indent=2)+'\n')
         records=[{'path':p.relative_to(bundle).as_posix(),'bytes':p.stat().st_size,'sha256':sha(p),'executable':os.access(p,os.X_OK)}
@@ -63,18 +64,14 @@ def package(source,destination):
         archive=folder/'runtime.tar.gz'
         with tarfile.open(archive,'w:gz') as tar:
             tar.add(bundle,arcname='riff-chatgpt')
-        metadata=json.loads((PLUGIN/'plugin.json').read_text())
-        metadata['version']='0.4.6'
-        metadata['description']='Compose and generate music with Riff inside your ChatGPT Chat cloud environment.'
-        metadata['extensions']['com.openai']['apps']='./.app.json'
-        interface=metadata['extensions']['com.openai']['interface']
-        interface['shortDescription']='Make music with Riff in Chat'
-        interface['longDescription']='Compose music, generate YuE2 recordings and scores, and manage LoRAs inside your ChatGPT Chat cloud environment. The plugin bundles the native Riff engine, score runtime and media tools. Music models download separately into your cloud workspace; no local computer or developer server is required.'
-        interface.pop('capabilities',None)
-        skill='riff-chatgpt/skills/riff-studio/'
+        package_root=metadata['name']+'/'
+        skill=package_root+'skills/riff-studio/'
         with zipfile.ZipFile(destination,'w',zipfile.ZIP_DEFLATED) as zip:
-            zip.writestr('riff-chatgpt/plugin.json',json.dumps(metadata,indent=2)+'\n')
-            zip.writestr('riff-chatgpt/.app.json',json.dumps({'apps':{'riff-studio-transport':{'id':'asdk_app_sites_47b8744149508191b69a7fe838be8b6d'}}},indent=2)+'\n')
+            zip.writestr(package_root+'plugin.json',json.dumps(metadata,indent=2)+'\n')
+            legacy={k:v for k,v in metadata.items() if k not in ('$schema','extensions')}
+            legacy.update(metadata['extensions']['com.openai'])
+            zip.writestr(package_root+'.codex-plugin/plugin.json',json.dumps(legacy,indent=2)+'\n')
+            zip.write(PLUGIN/'cloud/.app.json',package_root+'.app.json')
             zip.write(PLUGIN/'cloud/SKILL.md',skill+'SKILL.md')
             zip.write(PLUGIN/'cloud/riff.py',skill+'scripts/riff.py')
             zip.write(PLUGIN/'cloud/player.py',skill+'scripts/player.py')
@@ -82,7 +79,7 @@ def package(source,destination):
             zip.writestr(skill+'runtime.json',json.dumps({'sha256':sha(archive),'bytes':archive.stat().st_size,'riff_revision':lock['revision'],'platform':'linux-x86_64'}))
             zip.write(archive,skill+'runtime.tar.gz',compress_type=zipfile.ZIP_STORED)
             for path in sorted((PLUGIN/'assets').rglob('*')):
-                if path.is_file():zip.write(path,'riff-chatgpt/'+path.relative_to(PLUGIN).as_posix())
+                if path.is_file():zip.write(path,package_root+path.relative_to(PLUGIN).as_posix())
     return destination
 
 

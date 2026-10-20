@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "dev-47b8744149508191b69a7fe838be8b6d",
+  "version": "1.1.0",
+  "description": "Compose and generate music with Riff inside your ChatGPT Chat cloud environment.",
+  "author": {
+    "name": "Flip Engineering"
+  },
+  "homepage": "https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin",
+  "repository": "https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin",
+  "license": "MIT",
+  "keywords": [
+    "music",
+    "composition",
+    "YuE2",
+    "LoRA",
+    "audio"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Riff",
+        "shortDescription": "Make music with Riff in Chat",
+        "longDescription": "Compose music, generate YuE2 recordings and scores, and manage LoRAs in your ChatGPT Chat cloud workspace. Includes the native Riff engine and complete Studio. Music models download separately; no local computer or homelab is required.",
+        "developerName": "Flip Engineering",
+        "category": "Creativity",
+        "capabilities": [],
+        "defaultPrompt": "Open Riff and help me make a new piece of music.",
+        "logo": "./assets/icon.svg",
+        "composerIcon": "./assets/icon.svg",
+        "websiteURL": "https://riff-studio-transport.amusedcorgi5.chatgpt.site"
+      },
+      "apps": "./.app.json"
+    }
+  }
+}
