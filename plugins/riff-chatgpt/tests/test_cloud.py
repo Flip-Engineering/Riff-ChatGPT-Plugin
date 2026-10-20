@@ -44,6 +44,46 @@ class BootstrapTests(unittest.TestCase):
         self.assertFalse((self.root/'escape').exists())
 
 class ChatRuntimeTests(unittest.TestCase):
+    def load_worker(self):
+        import sys
+        server=Path(__file__).parents[1]/'server'
+        sys.path.insert(0,str(server))
+        self.addCleanup(lambda:sys.path.remove(str(server)))
+        spec=importlib.util.spec_from_file_location('riff_cloud_liveness_test',server/'cloud.py')
+        worker=importlib.util.module_from_spec(spec);spec.loader.exec_module(worker)
+        return worker
+
+    def test_worker_lease_ignores_stale_or_namespace_local_pid(self):
+        import subprocess
+        import sys
+        worker=self.load_worker()
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace=Path(tmp)
+            # Even the caller's valid PID must not be mistaken for a worker.
+            (workspace/'cloud-process.json').write_text(json.dumps({'pid':os.getpid(),'bundle':'/unrelated','liveness':'flock'}))
+            self.assertFalse(worker.worker_running(workspace))
+            process=subprocess.Popen([sys.executable,'-c',
+                "import fcntl,sys; lease=open(sys.argv[1],'a'); fcntl.flock(lease,fcntl.LOCK_EX); print('ready',flush=True); sys.stdin.read()",
+                str(workspace/'cloud-worker.lock')],stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True)
+            try:
+                self.assertEqual(process.stdout.readline().strip(),'ready')
+                self.assertTrue(worker.worker_running(workspace))
+            finally:
+                process.communicate('')
+            self.assertFalse(worker.worker_running(workspace))
+
+    def test_worker_loss_fails_promptly_without_replaying_mutation(self):
+        worker=self.load_worker()
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace=Path(tmp)
+            with self.assertRaisesRegex(RuntimeError,'worker stopped during request'):
+                worker.exchange(workspace,{'method':'tools/call','params':{'name':'riff_generate'}})
+            with worker.mailbox(workspace) as db:
+                rows=db.execute('SELECT state,payload FROM requests').fetchall()
+            self.assertEqual(len(rows),1)
+            self.assertEqual(rows[0][0],'pending')
+            self.assertEqual(json.loads(rows[0][1])['params']['name'],'riff_generate')
+
     def test_native_handlers_and_drafts_work_when_all_sockets_are_denied(self):
         import subprocess
         import sys

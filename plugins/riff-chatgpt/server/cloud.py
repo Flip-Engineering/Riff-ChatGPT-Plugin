@@ -35,6 +35,32 @@ def mailbox(workspace):
         db.close()
 
 
+def worker_running(workspace):
+    """A kernel-held lease survives PID reuse and crosses PID namespaces."""
+    with (workspace/'cloud-worker.lock').open('a') as lease:
+        try:
+            fcntl.flock(lease,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError:
+            return True
+        fcntl.flock(lease,fcntl.LOCK_UN)
+    record=workspace/'cloud-process.json'
+    if not record.exists():return False
+    current=json.loads(record.read_text())
+    if current.get('liveness')=='flock':return False
+    # Preserve an older package's live worker until it is explicitly stopped.
+    # kill(pid, 0) alone also succeeds for zombies and unrelated reused PIDs.
+    proc=Path('/proc')/str(current['pid'])
+    if Path('/proc/self/stat').exists():
+        try:
+            command=(proc/'cmdline').read_bytes().split(b'\0')
+            return os.fsencode(str(Path(current['bundle'])/'server/cloud.py')) in command
+        except FileNotFoundError:
+            return False
+    try:os.kill(current['pid'],0)
+    except ProcessLookupError:return False
+    return True
+
+
 def exchange(workspace,message,timeout=300):
     raw=json.dumps(message,allow_nan=False)
     if len(raw.encode())>MAX_INPUT+4096:
@@ -50,11 +76,19 @@ def exchange(workspace,message,timeout=300):
                 result=json.loads(row[1])
                 db.execute('DELETE FROM requests WHERE id=?',(request_id,))
                 return result
+        if not worker_running(workspace):
+            raise RuntimeError('Riff worker stopped during request '+request_id+'. Inspect job state before retrying; the mutation was not replayed.')
         time.sleep(.05)
     raise TimeoutError('Riff command timed out; request '+request_id+' remains in the mailbox. Inspect it before retrying a mutation.')
 
 
 def serve(workspace):
+    with (workspace/'cloud-worker.lock').open('a') as lease:
+        fcntl.flock(lease,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        serve_owned(workspace)
+
+
+def serve_owned(workspace):
     validate_bundle(ROOT,host_python=True)
     environment(ROOT,workspace)
     os.umask(0o077)
@@ -68,9 +102,9 @@ def serve(workspace):
         try:
             with mailbox(workspace) as db:
                 # An interrupted mutation must never be replayed automatically.
-                db.execute("UPDATE requests SET state='complete',response=? WHERE state='running'",
+                db.execute("UPDATE requests SET state='complete',response=? WHERE state IN ('running','pending')",
                            (json.dumps(RPC.error(None,-32603,'The previous Riff worker stopped during this request. Inspect job state before retrying.')),))
-            write_json(record,{'pid':os.getpid(),'bundle':str(ROOT),'transport':'sqlite-inprocess'})
+            write_json(record,{'pid':os.getpid(),'bundle':str(ROOT),'transport':'sqlite-inprocess','liveness':'flock'})
             while True:
                 with mailbox(workspace) as db:
                     row=db.execute("SELECT id,payload FROM requests WHERE state='pending' ORDER BY rowid LIMIT 1").fetchone()
@@ -99,23 +133,22 @@ def ensure(workspace,startup_seconds):
     with (workspace/'cloud-start.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
         record=workspace/'cloud-process.json'
-        if record.exists():
+        running=worker_running(workspace)
+        if running and record.exists():
             current=json.loads(record.read_text())
-            try:
-                os.kill(current['pid'],0)
-            except ProcessLookupError:
-                record.unlink(missing_ok=True)
-            else:
-                if current['bundle']!=str(ROOT):
-                    raise ValueError('Another Riff package owns this workspace. Stop it before switching packages.')
-                exchange(workspace,{'jsonrpc':'2.0','id':0,'method':'ping'},timeout=startup_seconds)
-                return
-        with (workspace/'cloud.log').open('ab') as log:
-            process=subprocess.Popen([sys.executable,'-B',str(ROOT/'server/cloud.py'),'--workspace',str(workspace),'_serve'],
-                stdin=subprocess.DEVNULL,stdout=log,stderr=log,start_new_session=True)
+            if current['bundle']!=str(ROOT):
+                raise ValueError('Another Riff package owns this workspace. Stop it before switching packages.')
+            exchange(workspace,{'jsonrpc':'2.0','id':0,'method':'ping'},timeout=startup_seconds)
+            return
+        process=None
+        if not running:
+            record.unlink(missing_ok=True)
+            with (workspace/'cloud.log').open('ab') as log:
+                process=subprocess.Popen([sys.executable,'-B',str(ROOT/'server/cloud.py'),'--workspace',str(workspace),'_serve'],
+                    stdin=subprocess.DEVNULL,stdout=log,stderr=log,start_new_session=True)
         deadline=time.monotonic()+startup_seconds
         while time.monotonic()<deadline:
-            if process.poll() is not None:
+            if process is not None and process.poll() is not None:
                 raise RuntimeError('Riff cloud startup failed. Inspect '+str(workspace/'cloud.log'))
             if record.exists():
                 exchange(workspace,{'jsonrpc':'2.0','id':0,'method':'ping'},timeout=max(.1,deadline-time.monotonic()))

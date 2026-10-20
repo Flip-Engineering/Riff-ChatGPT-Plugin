@@ -26,6 +26,10 @@ is still running before reusing it; host session lifetime is not guaranteed. Job
 saved drafts, models and recordings live outside the replaceable plugin package.
 A new/reset cloud computer may need setup again. Save requested outputs to the
 user's Library; do not claim storage survives cloud computer deletion.
+Worker ownership uses a held file lock, not a PID that may be invisible or reused
+across execution namespaces. If this host reaps detached processes, keep startup,
+generation and polling in the same retained execution session. Never replay a
+mutation after losing its worker; inspect persisted jobs and the request first.
 
 ## First use
 

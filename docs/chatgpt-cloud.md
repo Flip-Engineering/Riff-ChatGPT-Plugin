@@ -5,7 +5,8 @@ no external MCP endpoint and never uses the developer's homelab or the user's
 local computer as its production backend. The homelab remains a build/CI host.
 Private installation and real native generation have passed in ChatGPT Chat.
 The original 0.3.0 package required writable-path, socket and setup recoveries;
-0.3.1 replaces its socket transports. Fresh-Chat validation of worker persistence
+0.3.1 replaces its socket transports; 0.3.2 adds file-lock worker ownership and
+the reusable recording player. Fresh-Chat validation of worker persistence
 is still in progress. A connected full studio has not passed Chat acceptance.
 
 ## OpenAI documentation contract
@@ -57,6 +58,10 @@ Successive
 cloud command calls use the existing adapter and share the same native jobs,
 drafts, LoRA library and recordings. No network/Unix listener or developer credentials
 are needed. The original stdio/MCP App distribution remains separate.
+Worker liveness is established by a kernel-held file lock rather than PID lookup,
+which is unreliable across execution namespaces and succeeds for zombies or
+reused PIDs. Worker loss reports the request identity promptly. On restart,
+unfinished mailbox requests are failed for inspection rather than replayed.
 
 Build a complete Linux CPU platform package with the existing builder, then:
 
