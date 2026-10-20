@@ -70,6 +70,47 @@ pinned Riff dependency used by the desktop studio.
 
 ## Display the player in Chat
 
+### Connected full studio
+
+When the user asks for the complete studio, use the private **Riff Studio
+Transport** companion when it is connected. Its canonical plugin is
+https://chatgpt.com/plugins/plugin_asdk_app_sites_47b8744149508191b69a7fe838be8b6d.
+It carries MCP Apps commands and media; the native engine and every project
+file stay in this user's Chat cloud workspace. It is not an inference service.
+Preserve this Riff plugin and its workspace when connecting the companion.
+
+1. Call the companion's `riff_runtime_status`. If offline but already paired,
+   resume the same `scripts/relay.py --workspace /exact/workspace` in a retained,
+   network-enabled cloud execution session. Do not replace an existing pairing
+   or start a different native workspace silently.
+2. For an unpaired runtime, call its `riff_connect_runtime` and save the returned
+   enrollment JSON to a private file. Run the adjacent `scripts/relay.py` with
+   `--workspace /exact/workspace --enrollment-file /private/enrollment.json`.
+   The helper consumes the one-use enrollment file and stores its own private
+   session capability. Never paste worker credentials or media bytes in chat.
+3. Wait for `connected` and verify `riff_runtime_status` is online. Keep this
+   execution session running while the studio is used. The native worker opens
+   no listener; only the relay makes outbound HTTPS requests to its fixed endpoint.
+4. Call the companion's `riff_open_studio`. Its registered MCP resource opens
+   the complete original studio, including library, LoRA and score navigation.
+   Use the same companion tools for conversational changes so UI and chat share
+   the native state and revision checks. A displayed panel is not sufficient:
+   verify state, library selection and an actual edit through its command channel.
+5. If the cloud process stops, report offline status and resume it explicitly.
+   Interrupted mutations are never replayed. Inspect job/draft state before retrying.
+   Disconnect through `riff_disconnect_runtime` only when the user requests it
+   or at the end of an explicitly temporary acceptance test; native data survives.
+
+The companion currently has an **owner-private** Sites audience. Do not change
+its audience or claim general availability. During private owner acceptance,
+Sites service access may be supplied to the helper through a private
+`--service-access-file`. Never put that owner credential in a plugin archive,
+shared enrollment, prompt or source. Other users must not depend on it. If that
+private access is unavailable, report the actual connection failure and use the
+self-contained player below; do not expose studio controls with a fake backend.
+
+### Self-contained recording player
+
 After generating or selecting a recording, **display its player in Chat**. Do
 not stop at a WAV attachment or a tool response. The bundled helper exports the
 actual native visualization data and original Riff artwork renderer:
@@ -106,7 +147,7 @@ and visualization locally. It never uploads the selected file. Do not call the
 embedded preview the full recording. If the original analysis alone exceeds the
 host budget, report the helper's actual error and provide the files separately.
 
-This is a self-contained recording player, not a connected studio. Do not expose
+This fallback is a self-contained recording player, not a connected studio. Do not expose
 library/LoRA/composition controls that lack a working native command connection.
 
 The original score, LoRA, media and studio implementations are included. A cloud

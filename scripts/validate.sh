@@ -8,3 +8,5 @@ node --test plugins/riff-chatgpt/tests/bridge.test.cjs
 python3 -B plugins/riff-chatgpt/scripts/build_ui.py --riff-web riff/web
 node plugins/riff-chatgpt/tests/browser.test.cjs
 node --test plugins/riff-chatgpt/tests/player.test.cjs
+python3 scripts/build_relay.py
+node --test transport-site/tests/relay.test.js

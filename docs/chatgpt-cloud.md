@@ -14,7 +14,7 @@ studio has not passed Chat acceptance.
 Version 0.3.3 is privately installed on the existing Riff plugin identity. Its
 installed native export command and the actual Chat inline player display passed
 acceptance. The renderer and audio controls also passed sandboxed Chromium tests;
-direct playback automation inside Chat's own iframe remains unverified.
+direct playback inside Chat's own nested iframe now passes trusted-click, audio advancement, seeking, loop-wrap and changing original-canvas checks.
 
 ## OpenAI documentation contract
 
@@ -178,11 +178,12 @@ bridge tests. Linux archive acceptance exercised native runtime components and
 the installed player CLI with an explicit PCM transport fixture; that smoke is
 not a neural generation test. The real generation above occurred in Chat.
 
-Direct playback inside the mounted Chat iframe was not automated: its cloud
-browser could not open the local preview, and its local Playwright executable
-was absent. The separate sandboxed browser checks establish the player controls,
-while the observed Chat iframe establishes display. The full connected studio
-remains tracked in issue #2. The short native render establishes functionality;
+Subsequent inspection through the existing signed-in Chrome connection reached the
+actual nested Chat iframe. A trusted native-player click advanced `currentTime`
+from 0.521333 to 0.870651 seconds while the original canvas changed. Looping
+crossed 0.982444 to zero and continued to 0.722662; seeking to 0.5 succeeded.
+The player was paused and reset afterward. The full connected studio remains
+tracked in issue #2. The short native render establishes functionality;
 no listening or musical-quality acceptance is claimed.
 
 ## Historical Work probe: not Chat acceptance
@@ -204,3 +205,40 @@ Cloud native generation, account installation and the browser UI must be
 verified independently. The CLI does not mount an interactive MCP App. Preserve
 the complete studio in the package and report actual cloud preview/MCP UI
 support; do not label a returned resource reference as an opened studio.
+
+
+## Private connected studio transport (0.4.0 candidate)
+
+The existing native plugin keeps its identity. Its cloud package declares a dependency
+on the separately provisioned, canonical Sites transport App
+`asdk_app_sites_47b8744149508191b69a7fe838be8b6d`, verified in Chat settings.
+The companion plugin is `plugin_asdk_app_sites_47b8744149508191b69a7fe838be8b6d`.
+No second MCP server mapping is registered for the same Site.
+
+The transport is privately deployed at
+https://riff-studio-transport.amusedcorgi5.chatgpt.site. It is an MCP Apps bridge,
+not an inference backend. It serves the full original 903,396-byte studio and
+all 18 original adapter tool schemas. User identity comes from Sites-authenticated
+MCP requests. A one-use five-minute enrollment creates an isolated one-hour
+worker capability for the user's own Chat runtime. The helper makes only outbound
+HTTPS requests to that fixed origin; native handlers remain socket-free.
+
+Transient commands/results pass through R2 with compare-and-swap claims and
+bounded chunks; media remains in hidden tool metadata. The local SQLite journal
+prevents mutation replay after an interrupted exchange. Results are erased after
+delivery, disconnect erases session messages, and expired sessions are immediately
+inaccessible and collected by bounded background scans. Native library, drafts,
+LoRAs, scores and models remain in the cloud workspace.
+
+Four transport tests cover concurrent enrollment, cross-user isolation, native
+command envelope/media preservation, one-time claims, offline handling and
+authenticated commands. Three Python tests cover crash recovery, duplicate
+mutations and rejection of arbitrary endpoints. The 99-test source suite passes.
+
+Private acceptance can pass a Sites owner service-access token through an
+untracked, mode-600 file. It is never shipped in source, an archive, an enrollment
+or a shared prompt. This private access path does not establish general-user
+availability. The Site remains owner-private; making its runtime route generally
+reachable requires an explicit audience decision and retains per-session runtime
+authorization and authenticated MCP identity. Connected studio host acceptance
+is still in progress.

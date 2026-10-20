@@ -20,7 +20,7 @@ Validation needs Python 3.10+, Node.js, Chromium and FFmpeg/FFprobe. Development
 
 ## ChatGPT Chat target
 
-ChatGPT Chat is the required user surface. The cloud distribution bundles the native engine for execution in the user's Chat environment, with no homelab or local-computer backend. Private installation, native CPU generation, exact WAV export and inline player display have passed in Chat. Version 0.3.3 displays recordings with the original custom visualizer; larger recordings use a labeled preview and receipt-verified local full-WAV playback. See [the measured results and limits](docs/chatgpt-cloud.md). The complete studio's live library, LoRA and score controls still need a connected MCP Apps transport ([issue #2](https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/2)). The original local stdio distribution remains available.
+ChatGPT Chat is the required user surface. The cloud distribution bundles the native engine for execution in the user's Chat environment, with no homelab or local-computer backend. Private installation, native CPU generation, exact WAV export and inline player display have passed in Chat. Version 0.3.3 displays recordings with the original custom visualizer; larger recordings use a labeled preview and receipt-verified local full-WAV playback. See [the measured results and limits](docs/chatgpt-cloud.md). The complete studio's live library, LoRA and score controls now have a private Sites MCP transport under acceptance ([issue #2](https://github.com/Flip-Engineering/Riff-ChatGPT-Plugin/issues/2)). The original local stdio distribution remains available.
 
 ## Run and package
 
