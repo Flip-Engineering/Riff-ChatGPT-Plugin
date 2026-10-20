@@ -59,8 +59,11 @@ export class Relay {
     await this.authenticate(id,credential);
     await this.bucket.put('heartbeat/'+id,encode({at:this.clock()}));
     const items=await this.bucket.list({prefix:'requests/'+id+'/',limit:32});
-    for(const item of items.objects) {
-      const record=await this.get(item.key);
+    // R2 lists UUID keys lexically, not by submission time. Repeated UI polls
+    // must not starve an older library/media command with a later UUID.
+    const records=await Promise.all(items.objects.map(async item=>({item,record:await this.get(item.key)})));
+    records.sort((a,b)=>(a.record?.value.deadline||0)-(b.record?.value.deadline||0));
+    for(const {item,record} of records) {
       if(record&&record.value.deadline<this.clock()){await this.bucket.delete(item.key);continue;}
       if(record?.value.state!=='queued')continue;
       const r=record.value;
@@ -157,19 +160,23 @@ export function createWorker(contracts,resource) {
       if(path!=='/mcp')return json({error:'Not found'},404);
       if(body?.jsonrpc!=='2.0'||typeof body.method!=='string')return json({error:'Invalid JSON-RPC'},400);
       if(!Object.hasOwn(body,'id'))return new Response(null,{status:202});
-      const respond=result=>json({jsonrpc:'2.0',id:body.id,result:{...result,resultType:'complete'}});
+      const respond=result=>json({jsonrpc:'2.0',id:body.id,result:{...result,resultType:'complete',
+        ...(['server/discover','tools/list','resources/list','resources/templates/list','resources/read'].includes(body.method)?{ttlMs:0,cacheScope:'private'}:{})}});
       if(body.method==='server/discover')return respond({supportedVersions:['2026-07-28'],capabilities:{tools:{},resources:{}},_meta:{'io.modelcontextprotocol/serverInfo':{name:'riff-cloud-transport',version:'0.4.0'}},ttlMs:0,cacheScope:'private'});
       if(body.method==='initialize')return respond({protocolVersion:'2025-11-25',capabilities:{tools:{},resources:{}},serverInfo:{name:'riff-cloud-transport',version:'0.4.0'}});
       if(body.method==='ping')return respond({});
       if(body.method==='tools/list')return respond({tools:[...connectionTools,...contracts],ttlMs:0,cacheScope:'private'});
       const p=body.params||{};
+      if(body.method.startsWith('resources/'))console.info(JSON.stringify({event:'riff_resource_request',method:body.method,uri:p.uri||null}));
       // Static, identical studio source is safe for the host's resource scan.
       // User state and every runtime command still require caller identity.
       if(body.method==='resources/list')return respond({resources:[{uri:resource.uri,name:'Riff Studio',mimeType:resource.mimeType}]});
       if(body.method==='resources/templates/list')return respond({resourceTemplates:[]});
       if(body.method==='resources/read') {
         if(p.uri!==resource.uri)throw error('Unknown Riff resource.');
-        return respond({contents:[await resource.read()]});
+        const content=await resource.read();
+        console.info(JSON.stringify({event:'riff_resource_served',uri:content.uri,mimeType:content.mimeType,length:content.text.length}));
+        return respond({contents:[content]});
       }
       if(body.method!=='tools/call')return json({jsonrpc:'2.0',id:body.id,error:{code:-32601,message:'Unknown MCP method'}});
       const identity=request.headers.get('oai-authenticated-user-id');

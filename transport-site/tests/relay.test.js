@@ -57,6 +57,17 @@ test('real MCP envelope transports app-only media privately and delivers a mutat
   assert.equal((await mcp('riff_save_draft',{},'bob')).result.isError,true);
 });
 
+test('older requests run before new requests regardless of UUID ordering',async()=>{
+  const r=new Relay(new Bucket(),tools,()=>1000000),pair=await r.pair('alice');
+  const credential=(await r.claim(pair.session_id,pair.enrollment_token)).worker_token;
+  const prefix='requests/'+pair.session_id+'/';
+  await r.put(prefix+'000-newer',{id:'000-newer',state:'queued',deadline:1045000,tool:'riff_get_draft',arguments:{}});
+  await r.put(prefix+'fff-older',{id:'fff-older',state:'queued',deadline:1040000,tool:'riff_get_draft',arguments:{}});
+  assert.equal((await r.poll(pair.session_id,credential)).request_id,'fff-older');
+  assert.equal((await r.poll(pair.session_id,credential)).request_id,'000-newer');
+  assert.equal(await r.poll(pair.session_id,credential),null);
+});
+
 test('offline and expired workers never receive new work',async()=>{
   let at=1000000;const bucket=new Bucket(),r=new Relay(bucket,tools,()=>at),pair=await r.pair('alice');
   const credential=(await r.claim(pair.session_id,pair.enrollment_token)).worker_token;
@@ -75,4 +86,10 @@ test('MCP commands require trusted caller identity; static resources support hos
   const listed=await (await send('tools/list')).json();assert.equal(listed.result.tools.length,5);
   const read=await (await send('resources/read',{uri:resource.uri},{'oai-authenticated-user-id':'alice'})).json();
   assert.equal(read.result.contents[0].text,'<main>Original studio</main>');
+  for(const method of ['resources/list','resources/templates/list','resources/read']) {
+    const response=await (await send(method,{uri:resource.uri})).json();
+    assert.equal(response.result.resultType,'complete');
+    assert.equal(response.result.ttlMs,0);
+    assert.equal(response.result.cacheScope,'private');
+  }
 });
