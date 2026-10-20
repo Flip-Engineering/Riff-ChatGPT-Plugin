@@ -16,7 +16,7 @@ from routes import AdapterError, ID, HASH, TOKEN, route
 from transport import LoopbackBackend, NoRedirect, UploadStore, MAX_JSON, MAX_CHUNK, MAX_UPLOAD
 
 VERSION = "0.2.0"
-UI_URI = "ui://riff/studio/adapter-v0.2.2.html"
+UI_URI = "ui://riff/studio/adapter-v0.2.3.html"
 MIME = "text/html;profile=mcp-app"
 MAX_BODY = 256 * 1024
 # Binary chunks are one MiB before base64. The wire budget includes metadata.

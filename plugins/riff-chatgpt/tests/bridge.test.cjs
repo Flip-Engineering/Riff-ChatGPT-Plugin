@@ -254,6 +254,20 @@ test('Chat file export does not replay rejected uploads or announce failed downl
   assert.equal(opened, 0); assert.deepEqual(events, []); b.close();
 });
 
+test('WAV export uses the current conversation when the host cannot download app files', async () => {
+  const h = mockWindow(() => ({})), b = new RiffBridge(h.win); await b.ready;
+  b.hostCapabilities = {};
+  const events = []; b.on('export-request', value => events.push(value));
+  const result = await b.downloadLink({ getAttribute: () => `/api/tracks/${id}/audio?download=1` });
+  assert.deepEqual(result, { requestedInChat: true });
+  const request = h.sent.at(-1).message;
+  assert.equal(request.method, 'ui/message');
+  assert(request.params.content[0].text.includes(id));
+  assert(request.params.content[0].text.includes('Do not generate music or change the draft.'));
+  assert.deepEqual(events, [{ trackId: id }]);
+  assert.equal(h.sent.some(x => x.message.method === 'tools/call'), false); b.close();
+});
+
 test('background context omits transcript content and explicit context attaches it', async () => {
   const h = mockWindow(() => ({})); const b = new RiffBridge(h.win);
   const context = { recipe: { style: 'folk' }, sharedDraftRevision: 3 };

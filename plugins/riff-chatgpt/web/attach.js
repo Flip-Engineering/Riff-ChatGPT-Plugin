@@ -23,6 +23,7 @@
   const announce = text => { status.textContent = text; };
   host.on("error", error => announce(error.message));
   host.on("download", ({ name }) => announce(`Export ready: ${name}`));
+  host.on("export-request", () => announce("Original WAV export requested in ChatGPT."));
 
   function remember() {
     try { localStorage.setItem("riff.chatgpt.shared", JSON.stringify({ revision, signature: synced })); } catch {}
@@ -241,6 +242,11 @@
     if (path === "/api/state" || path === "/api/system") setTimeout(() => { managedSettings(state); writerAvailability(); applyDeepLink(); }, 0);
   });
   host.ready.then(() => {
+    if (!host.hostCapabilities.downloadFile) {
+      const wav = document.querySelector("#download");
+      wav.textContent = "WAV to Chat";
+      wav.title = "Ask ChatGPT to export the original WAV to your Library";
+    }
     if (host.lastToolResult) host.emit("tool-result", host.lastToolResult);
     pollShared(); scheduleContext();
   }).catch(error => announce(error.message));
