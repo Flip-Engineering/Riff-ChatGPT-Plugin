@@ -88,7 +88,13 @@ limits are enforced before the private backend is reached.
 `/api/capabilities` for the actual recipe contract. A successful generation call
 returns a queued job; poll `/api/jobs/<id>` before reporting a completed track.
 The bundled `riff-studio` skill describes the creative workflow and conflict
-handling for the assistant.
+handling for the assistant. The MCP server also serves it by the MCP Skills
+extension (`io.modelcontextprotocol/skills`, Beta,
+[specification/beta/skills.mdx](https://github.com/modelcontextprotocol/ext-skills/blob/main/specification/beta/skills.mdx)):
+it declares the extension with `directoryRead`, answers `skills/list`,
+`skills/get` and `resources/directory/read`, and serves each file of `skills/`
+as `skill://<skill>/<file>` through `resources/read`, so a host that implements
+the extension finds and loads the skill from the server itself.
 
 ## Develop and verify
 

@@ -13,6 +13,7 @@ import threading
 from adapter import (Adapter, AdapterError, DraftStore, LoopbackBackend, TOOLS, TOOL_MAP,
                      UI_URI, MIME, VERSION, MAX_INPUT, SETTINGS_CAPABILITY)
 from runtime import ManagedRiff
+import skills as skill_catalog
 
 CURRENT_PROTOCOL = "2026-07-28"
 PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26")
@@ -25,16 +26,30 @@ INSTRUCTIONS = (
     "A generation submission is queued work, not a successful recording. Poll the job to completion. "
     "Use app-only tools only from the studio. Never place credentials or audio bytes in chat context."
 )
+# The skills this server serves (io.modelcontextprotocol/skills): each directory of skills/ with a SKILL.md.
+SKILL_ROOT = Path(__file__).resolve().parents[1] / "skills"
+SKILL_METHODS = ("skills/list", "skills/get", "resources/directory/read")
 
 
-def capabilities(*, modern):
-    return {"tools": {}, "resources": {},
-            "extensions" if modern else "experimental": {"openai/settings": SETTINGS_CAPABILITY}}
+def instructions(skills):
+    """The server instructions, with a pointer to each skill the server serves."""
+    if not len(skills):
+        return INSTRUCTIONS
+    named = ", ".join(entry["uri"] for entry in skills.list())
+    return f"{INSTRUCTIONS} This server also serves skills, guides you can load before the work: {named}."
+
+
+def capabilities(*, modern, skills=()):
+    extensions = {"openai/settings": SETTINGS_CAPABILITY}
+    if len(skills):
+        extensions[skill_catalog.EXTENSION] = {"directoryRead": True}
+    return {"tools": {}, "resources": {}, "extensions" if modern else "experimental": extensions}
 
 
 class RPC:
-    def __init__(self, adapter):
+    def __init__(self, adapter, skills=None):
         self.adapter, self.initialized = adapter, False
+        self.skills = skills if skills is not None else skill_catalog.Catalog([SKILL_ROOT])
 
     def handle(self, msg):
         if not isinstance(msg, dict) or msg.get("jsonrpc") != "2.0" or not isinstance(msg.get("method"), str):
@@ -64,15 +79,18 @@ class RPC:
                 return self.error(mid, -32602, "Modern requests require client capabilities metadata.")
         try:
             if method == "server/discover":
-                result = {"supportedVersions": [CURRENT_PROTOCOL], "capabilities": capabilities(modern=True),
-                          "_meta": {"io.modelcontextprotocol/serverInfo": SERVER_INFO}, "instructions": INSTRUCTIONS}
+                result = {"supportedVersions": [CURRENT_PROTOCOL],
+                          "capabilities": capabilities(modern=True, skills=self.skills),
+                          "_meta": {"io.modelcontextprotocol/serverInfo": SERVER_INFO},
+                          "instructions": instructions(self.skills)}
             elif method == "initialize":
                 version = params.get("protocolVersion")
                 version = version if version in PROTOCOLS else PROTOCOLS[0]
                 self.initialized = True
                 modern = False
                 result = {"protocolVersion": version, "serverInfo": SERVER_INFO,
-                          "capabilities": capabilities(modern=False), "instructions": INSTRUCTIONS}
+                          "capabilities": capabilities(modern=False, skills=self.skills),
+                          "instructions": instructions(self.skills)}
             elif method == "ping":
                 result = {}
             elif not modern and not self.initialized:
@@ -83,6 +101,14 @@ class RPC:
                 result = {"resources": [{"uri": UI_URI, "name": "Riff Studio", "mimeType": MIME}]}
             elif method == "resources/templates/list":
                 result = {"resourceTemplates": []}
+            elif method in SKILL_METHODS and len(self.skills):
+                result = self.skill_method(method, params)
+                if "error" in result:
+                    return self.error(mid, -32602, result["error"])
+                # Cacheable in both eras (skills.mdx: ttlMs and cacheScope are required).
+                result.update(ttlMs=0, cacheScope="private")
+            elif method == "resources/read" and self.skills.read(params.get("uri")):
+                result = {"contents": self.skills.read(params["uri"])}
             elif method == "resources/read":
                 if params.get("uri") != UI_URI:
                     return self.error(mid, -32602 if modern else -32002, "Unknown Riff resource.")
@@ -108,6 +134,20 @@ class RPC:
             # Never log request arguments: they may contain app-entered keys.
             print(f"Riff adapter internal error: {type(exc).__name__}", file=sys.stderr)
             return self.error(mid, -32603, "Riff adapter internal error; inspect its private log.")
+
+    def skill_method(self, method, params):
+        if method == "skills/list":
+            return {"skills": self.skills.list()}
+        uri = params.get("uri")
+        if not isinstance(uri, str):
+            return {"error": f"{method} needs uri, a string."}
+        if method == "skills/get":
+            entry = self.skills.get(uri)
+            return {"skill": entry} if entry else {"error": f"No skill is served at {uri}."}
+        children = self.skills.directory(uri)
+        if children is None:
+            return {"error": f"{uri} is not a directory resource of this server."}
+        return {"resources": children}
 
     @staticmethod
     def error(mid, code, message, data=None):
